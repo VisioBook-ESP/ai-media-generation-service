@@ -1,0 +1,165 @@
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tests & coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+coverage.xml
+htmlcov/
+.pytest_cache/
+junit*.xml
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Packaging
+.pybuilder/
+pip-wheel-metadata/
+*.whl
+
+# Lock files (keep poetry.lock/uv.lock if you want reproducible installs)
+# poetry.lock
+# uv.lock
+.uv/
+
+# =============================================================================
+# AI / ML — Models & Data
+# =============================================================================
+# Large model weights (store in object storage, not git)
+models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.gguf
+*.ggml
+*.bin
+*.h5
+*.hdf5
+*.pb
+*.onnx
+*.tflite
+*.pkl
+*.pickle
+*.joblib
+
+# Raw / processed datasets
+data/
+*.parquet
+*.arrow
+*.feather
+*.csv
+
+# Generated media outputs
+outputs/
+output/
+generated/
+results/
+samples/
+
+# Experiment tracking
+wandb/
+mlruns/
+mlartifacts/
+.mlflow/
+lightning_logs/
+
+# =============================================================================
+# Secrets & Environment
+# =============================================================================
+.env
+.env.*
+!.env.example
+!.env.template
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+credentials.json
+service-account*.json
+
+# =============================================================================
+# Helm & Kubernetes
+# =============================================================================
+# Chart dependencies (fetched via `helm dependency update`)
+helm/charts/
+
+# Rendered templates (debug only)
+helm/rendered/
+
+# Kubeconfig files
+kubeconfig
+kubeconfig.yaml
+*.kubeconfig
+
+# Helmfile lock
+helmfile.lock
+
+# =============================================================================
+# Docker
+# =============================================================================
+.dockerignore
+
+# =============================================================================
+# Editors & IDEs
+# =============================================================================
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# =============================================================================
+# Logs & Temp
+# =============================================================================
+logs/
+*.log
+tmp/
+temp/
+.tmp/
+
+# =============================================================================
+# Misc
+# =============================================================================
+*.bak
+*.orig
+*.patch
