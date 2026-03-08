@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.dev import router as dev_router
 from app.api.health import router as health_router
 from app.api.webhooks import router as webhook_router
 from app.clients.runpod import RunPodClient
@@ -55,3 +56,4 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(webhook_router)
+app.include_router(dev_router)

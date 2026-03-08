@@ -1,5 +1,4 @@
 comfyui:
-  # Répertoire de base des modèles sur le network volume RunPod
   base_path: /runpod-volume/models
 
   diffusion_models: diffusion_models/

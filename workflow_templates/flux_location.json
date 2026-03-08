@@ -24,7 +24,7 @@
   },
   "35": {
     "inputs": {
-      "guidance": 3.5,
+      "guidance": 4.0,
       "conditioning": ["6", 0]
     },
     "class_type": "FluxGuidance",
@@ -42,10 +42,10 @@
   "31": {
     "inputs": {
       "seed": 0,
-      "steps": 20,
+      "steps": 30,
       "cfg": 1,
       "sampler_name": "euler",
-      "scheduler": "simple",
+      "scheduler": "beta",
       "denoise": 1,
       "model": ["30", 0],
       "positive": ["35", 0],
