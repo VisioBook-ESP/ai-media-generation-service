@@ -1,0 +1,74 @@
+{
+  "30": {
+    "inputs": {
+      "ckpt_name": "flux1-dev-fp8.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": { "title": "Load Checkpoint" }
+  },
+  "6": {
+    "inputs": {
+      "text": "",
+      "clip": ["30", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive Prompt" }
+  },
+  "33": {
+    "inputs": {
+      "text": "",
+      "clip": ["30", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt" }
+  },
+  "35": {
+    "inputs": {
+      "guidance": 3.5,
+      "conditioning": ["6", 0]
+    },
+    "class_type": "FluxGuidance",
+    "_meta": { "title": "FluxGuidance" }
+  },
+  "27": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": { "title": "Latent Image (portrait 1:1)" }
+  },
+  "31": {
+    "inputs": {
+      "seed": 0,
+      "steps": 20,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": ["30", 0],
+      "positive": ["35", 0],
+      "negative": ["33", 0],
+      "latent_image": ["27", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler" }
+  },
+  "8": {
+    "inputs": {
+      "samples": ["31", 0],
+      "vae": ["30", 2]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAE Decode" }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "portrait",
+      "images": ["8", 0]
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "Save Image" }
+  }
+}

@@ -1,0 +1,8 @@
+# Image du worker ComfyUI pour RunPod Serverless
+# Build : docker build -f Dockerfile.runpod -t your-dockerhub/visiobook-comfyui:latest .
+# Push  : docker push your-dockerhub/visiobook-comfyui:latest
+
+FROM ghcr.io/runpod-workers/worker-comfyui:latest
+
+# Pointe ComfyUI vers le network volume pour les modèles
+COPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml

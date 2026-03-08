@@ -1,0 +1,11 @@
+comfyui:
+  # Répertoire de base des modèles sur le network volume RunPod
+  base_path: /runpod-volume/models
+
+  diffusion_models: diffusion_models/
+  text_encoders: text_encoders/
+  vae: vae/
+  checkpoints: checkpoints/
+  clip_vision: clip_vision/
+  ipadapter: ipadapter/
+  loras: loras/
