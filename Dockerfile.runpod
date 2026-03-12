@@ -1,9 +1,0 @@
-# Ce Dockerfile ne s'utilise PAS directement.
-# Process de build :
-#   1. git clone https://github.com/runpod-workers/worker-comfyui.git /tmp/worker-comfyui
-#   2. cp extra_model_paths.yaml /tmp/worker-comfyui/
-#   3. cd /tmp/worker-comfyui && docker build -t vatt/visiobook-comfyui:latest .
-#   4. docker push vatt/visiobook-comfyui:latest
-
-FROM scratch
-COPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml
