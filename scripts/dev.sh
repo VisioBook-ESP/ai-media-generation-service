@@ -4,10 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 cleanup() {
+    trap - EXIT INT TERM
     echo ""
     echo "Arrêt..."
-    kill "$NATS_PID" "$NGROK_PID" "$SERVER_PID" 2>/dev/null || true
-    wait 2>/dev/null || true
+    docker stop nats-dev > /dev/null 2>&1 || true
+    kill "$NGROK_PID" "$SERVER_PID" 2>/dev/null || true
+    wait "$NGROK_PID" "$SERVER_PID" 2>/dev/null || true
     echo "Done."
 }
 trap cleanup EXIT INT TERM
@@ -47,6 +49,7 @@ echo "  .env mis à jour"
 # ── 3. Serveur ───────────────────────────────────────────────────────────────
 
 echo "[3/3] Démarrage du serveur..."
+fuser -k 8087/tcp > /dev/null 2>&1 || true
 cd "$ROOT"
 .venv/bin/uvicorn app.main:app --port 8087 --reload &
 SERVER_PID=$!
