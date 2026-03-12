@@ -12,124 +12,219 @@ _HTML = """<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Dev — ai-media-generation-service</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev UI</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: monospace; background: #0f0f0f; color: #e0e0e0; padding: 24px; }
-  h1 { font-size: 16px; color: #888; margin-bottom: 24px; }
-  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; height: calc(100vh - 80px); }
-  .panel { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-  label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f1f4;
+    --border: #e2e4ea;
+    --text: #1a1d27;
+    --text-muted: #8b8fa8;
+    --accent: #5b5ef4;
+    --accent-hover: #4244d4;
+    --accent-light: #eeeeff;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 52px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-logo {
+    width: 22px; height: 22px; background: var(--accent); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-logo svg { width: 12px; height: 12px; fill: white; }
+  header h1 { font-size: 13px; font-weight: 600; color: var(--text); }
+  header h1 span { color: var(--text-muted); font-weight: 400; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 100px;
+    border: 1px solid var(--border); color: var(--text-muted); background: var(--surface2);
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+  .badge.connected { border-color: #bbf7d0; color: var(--green); background: var(--green-bg); }
+  .badge.connected::before { background: var(--green); }
+  .badge.disconnected { border-color: #fecaca; color: var(--red); background: var(--red-bg); }
+  .badge.disconnected::before { background: var(--red); }
+  .main { display: grid; grid-template-columns: 380px 1fr; flex: 1; overflow: hidden; }
+  .sidebar {
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border); overflow-y: auto;
+    background: var(--surface);
+  }
+  .section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.7px; color: var(--text-muted); margin-bottom: 14px;
+  }
+  label { font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 4px; }
   input, textarea {
-    width: 100%; background: #1a1a1a; border: 1px solid #333; color: #e0e0e0;
-    padding: 8px 10px; font-family: monospace; font-size: 13px; border-radius: 4px;
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 7px 10px; font-size: 13px; border-radius: 7px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
   }
-  input:focus, textarea:focus { outline: none; border-color: #555; }
-  .row { display: flex; gap: 8px; }
-  .row input { flex: 1; }
-  .section-title {
-    font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px;
-    padding-bottom: 8px; border-bottom: 1px solid #222;
+  input:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
   }
-  .item { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 12px; position: relative; }
-  .item button.remove {
-    position: absolute; top: 8px; right: 8px; background: none; border: none;
-    color: #444; cursor: pointer; font-size: 14px; padding: 2px 6px;
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; position: relative;
   }
-  .item button.remove:hover { color: #c0392b; }
-  button.add {
-    background: none; border: 1px dashed #333; color: #555; padding: 8px;
-    width: 100%; cursor: pointer; font-family: monospace; font-size: 12px; border-radius: 4px;
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .btn-remove {
+    position: absolute; top: 10px; right: 10px; background: none; border: none;
+    color: var(--text-muted); cursor: pointer; font-size: 15px; line-height: 1;
+    padding: 2px 5px; border-radius: 4px; transition: all 0.15s;
   }
-  button.add:hover { border-color: #555; color: #888; }
-  button.submit {
-    background: #1d4ed8; border: none; color: white; padding: 12px;
-    width: 100%; cursor: pointer; font-family: monospace; font-size: 13px;
-    border-radius: 4px; margin-top: 8px;
+  .btn-remove:hover { color: var(--red); background: var(--red-bg); }
+  .btn-add {
+    width: 100%; background: none; border: 1px dashed var(--border);
+    color: var(--text-muted); padding: 8px; cursor: pointer;
+    font-size: 12px; font-weight: 500; border-radius: 7px; transition: all 0.15s;
+    font-family: inherit;
   }
-  button.submit:hover { background: #2563eb; }
-  button.submit:disabled { background: #1a2a4a; color: #456; cursor: not-allowed; }
-  #logs {
-    flex: 1; background: #0a0a0a; border: 1px solid #222; border-radius: 4px;
-    padding: 12px; overflow-y: auto; font-size: 12px; line-height: 1.6;
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .btn-submit {
+    margin: 16px 20px; background: var(--accent); border: none; color: white;
+    padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+    border-radius: 8px; width: calc(100% - 40px); transition: background 0.15s;
+    font-family: inherit; letter-spacing: 0.1px;
   }
-  .log-entry { padding: 4px 0; border-bottom: 1px solid #111; }
-  .log-entry .time { color: #444; margin-right: 8px; }
-  .log-entry .subject { color: #3b82f6; margin-right: 8px; }
-  .log-entry .data { color: #a0a0a0; white-space: pre-wrap; word-break: break-all; }
-  .log-entry.sent .subject { color: #10b981; }
-  .log-entry.error .subject { color: #ef4444; }
-  .ws-status { font-size: 11px; color: #444; padding: 4px 0; }
-  .ws-status.connected { color: #10b981; }
-  .ws-status.disconnected { color: #ef4444; }
-  .item-label { font-size: 11px; color: #444; margin-bottom: 8px; }
+  .btn-submit:hover { background: var(--accent-hover); }
+  .btn-submit:disabled { background: var(--surface2); color: var(--text-muted); cursor: not-allowed; }
+  .logs-panel {
+    display: flex; flex-direction: column; overflow: hidden; background: var(--bg);
+  }
+  .logs-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 48px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logs-header span { font-size: 12px; font-weight: 600; color: var(--text); }
+  .btn-clear {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 500;
+    border-radius: 6px; transition: all 0.15s; font-family: inherit;
+  }
+  .btn-clear:hover { border-color: var(--text-muted); color: var(--text); }
+  #logs { flex: 1; overflow-y: auto; padding: 12px 16px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  .log-entry {
+    display: flex; gap: 12px; padding: 9px 12px; border-radius: 7px;
+    margin-bottom: 4px; font-size: 12px; align-items: flex-start;
+    border: 1px solid transparent; transition: background 0.1s;
+  }
+  .log-entry:hover { background: var(--surface); }
+  .log-entry.sent { border-color: #bbf7d0; background: var(--green-bg); }
+  .log-entry.error { border-color: #fecaca; background: var(--red-bg); }
+  .log-time { color: var(--text-muted); white-space: nowrap; font-size: 11px; padding-top: 1px; }
+  .log-body { flex: 1; min-width: 0; }
+  .log-subject { margin-bottom: 4px; font-weight: 600; font-size: 11px; }
+  .log-subject.out { color: var(--green); }
+  .log-subject.in { color: var(--blue); }
+  .log-subject.err { color: var(--red); }
+  .log-data { color: var(--text-muted); white-space: pre-wrap; word-break: break-all; line-height: 1.55; font-size: 11px; }
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px; }
+  .empty-icon { font-size: 28px; opacity: 0.3; }
+  .empty-text { color: var(--text-muted); font-size: 13px; font-family: inherit; }
 </style>
 </head>
 <body>
-<h1>ai-media-generation-service / dev UI</h1>
-<div class="layout">
 
-  <div class="panel" id="form-panel">
-    <div>
-      <div class="section-title">Identifiants</div>
-      <br>
+<header>
+  <div class="header-left">
+    <div class="header-logo">
+      <svg viewBox="0 0 12 12"><path d="M2 2h3v3H2zm5 0h3v3H7zM2 7h3v3H2zm5 0h3v3H7z"/></svg>
+    </div>
+    <h1>ai-media-generation-service <span>/ dev</span></h1>
+  </div>
+  <span class="badge disconnected" id="wsStatus">disconnected</span>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="section">
+      <div class="section-label">Identifiants</div>
       <div class="row">
-        <div style="flex:1"><label>projectId</label><input id="projectId" value="test-001"></div>
-        <div style="flex:1"><label>executionId</label><input id="executionId" value="exec-001"></div>
+        <div class="field"><label>projectId</label><input id="projectId" value="test-001"></div>
+        <div class="field"><label>executionId</label><input id="executionId" value="exec-001"></div>
       </div>
     </div>
 
-    <div>
-      <div class="section-title">Style visuel</div>
-      <br>
-      <label>visualStyle</label>
-      <input id="visualStyle" value="watercolor illustration, soft colors, storybook style">
-      <br>
-      <label>negativePrompt</label>
-      <input id="negativePrompt" value="ugly, blurry, low quality">
+    <div class="section">
+      <div class="section-label">Style visuel</div>
+      <div class="field">
+        <label>visualStyle</label>
+        <input id="visualStyle" value="watercolor illustration, soft colors, storybook style">
+      </div>
+      <div class="field">
+        <label>negativePrompt</label>
+        <input id="negativePrompt" value="ugly, blurry, low quality">
+      </div>
     </div>
 
-    <div>
-      <div class="section-title">Personnages</div>
-      <br>
+    <div class="section">
+      <div class="section-label">Personnages</div>
       <div id="characters"></div>
-      <button class="add" onclick="addCharacter()">+ Ajouter un personnage</button>
+      <button class="btn-add" onclick="addCharacter()">+ Ajouter un personnage</button>
     </div>
 
-    <div>
-      <div class="section-title">Lieux</div>
-      <br>
+    <div class="section">
+      <div class="section-label">Lieux</div>
       <div id="locations"></div>
-      <button class="add" onclick="addLocation()">+ Ajouter un lieu</button>
+      <button class="btn-add" onclick="addLocation()">+ Ajouter un lieu</button>
     </div>
 
-    <button class="submit" id="submitBtn" onclick="send()">Publier l'event NATS</button>
+    <button class="btn-submit" id="submitBtn" onclick="send()">Publier l'event</button>
   </div>
 
-  <div class="panel">
-    <div class="section-title">Logs NATS en temps réel</div>
-    <div class="ws-status disconnected" id="wsStatus">● WebSocket déconnecté</div>
-    <div id="logs"></div>
+  <div class="logs-panel">
+    <div class="logs-header">
+      <span>Logs NATS</span>
+      <button class="btn-clear" onclick="clearLogs()">Vider</button>
+    </div>
+    <div id="logs">
+      <div class="empty">
+        <div class="empty-icon">◎</div>
+        <div class="empty-text">En attente d'événements...</div>
+      </div>
+    </div>
   </div>
-
 </div>
 
 <script>
-let charCount = 0, locCount = 0;
+let charCount = 0, locCount = 0, logsEmpty = true;
 
 function addCharacter(id='', desc='') {
   charCount++;
   const n = charCount;
   const div = document.createElement('div');
-  div.className = 'item';
-  div.id = 'char-' + n;
+  div.className = 'card';
   div.innerHTML = `
-    <div class="item-label">Personnage #${n}</div>
-    <button class="remove" onclick="this.parentElement.remove()">✕</button>
-    <label>characterId</label>
-    <input class="char-id" value="${id || 'char-' + n}" style="margin-bottom:8px">
-    <label>physicalDescription</label>
-    <input class="char-desc" value="${desc}">
+    <div class="card-title">Personnage #${n}</div>
+    <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="field"><label>characterId</label><input class="char-id" value="${id || 'char-' + n}"></div>
+    <div class="field"><label>physicalDescription</label><input class="char-desc" value="${desc}"></div>
   `;
   document.getElementById('characters').appendChild(div);
 }
@@ -138,34 +233,19 @@ function addLocation(id='', desc='') {
   locCount++;
   const n = locCount;
   const div = document.createElement('div');
-  div.className = 'item';
-  div.id = 'loc-' + n;
+  div.className = 'card';
   div.innerHTML = `
-    <div class="item-label">Lieu #${n}</div>
-    <button class="remove" onclick="this.parentElement.remove()">✕</button>
-    <label>locationId</label>
-    <input class="loc-id" value="${id || 'loc-' + n}" style="margin-bottom:8px">
-    <label>description</label>
-    <input class="loc-desc" value="${desc}">
+    <div class="card-title">Lieu #${n}</div>
+    <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="field"><label>locationId</label><input class="loc-id" value="${id || 'loc-' + n}"></div>
+    <div class="field"><label>description</label><input class="loc-desc" value="${desc}"></div>
   `;
   document.getElementById('locations').appendChild(div);
 }
 
 async function send() {
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Envoi...';
-
-  const characters = [...document.querySelectorAll('#characters .item')].map(el => ({
-    characterId: el.querySelector('.char-id').value,
-    physicalDescription: el.querySelector('.char-desc').value,
-  }));
-
-  const locations = [...document.querySelectorAll('#locations .item')].map(el => ({
-    locationId: el.querySelector('.loc-id').value,
-    description: el.querySelector('.loc-desc').value,
-  }));
-
+  btn.disabled = true; btn.textContent = 'Envoi en cours...';
   const payload = {
     projectId: document.getElementById('projectId').value,
     executionId: document.getElementById('executionId').value,
@@ -173,59 +253,53 @@ async function send() {
       visualStyle: document.getElementById('visualStyle').value,
       negativePrompt: document.getElementById('negativePrompt').value,
     },
-    characters,
-    locations,
+    characters: [...document.querySelectorAll('#characters .card')].map(el => ({
+      characterId: el.querySelector('.char-id').value,
+      physicalDescription: el.querySelector('.char-desc').value,
+    })),
+    locations: [...document.querySelectorAll('#locations .card')].map(el => ({
+      locationId: el.querySelector('.loc-id').value,
+      description: el.querySelector('.loc-desc').value,
+    })),
   };
-
   try {
-    const res = await fetch('/dev/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    appendLog('sent', 'visiobook.media.generate_references', payload);
+    await fetch('/dev/publish', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    appendLog('sent', 'out', 'visiobook.media.generate_references', payload);
   } catch (e) {
-    appendLog('error', 'ERROR', { message: e.message });
+    appendLog('error', 'err', 'ERROR', { message: e.message });
   }
-
-  btn.disabled = false;
-  btn.textContent = 'Publier l\\'event NATS';
+  btn.disabled = false; btn.textContent = 'Publier l\\'event';
 }
 
-function appendLog(type, subject, data) {
+function appendLog(type, subjectClass, subject, data) {
   const logs = document.getElementById('logs');
+  if (logsEmpty) { logs.innerHTML = ''; logsEmpty = false; }
   const el = document.createElement('div');
   el.className = 'log-entry ' + type;
   const time = new Date().toLocaleTimeString('fr-FR', { hour12: false });
-  el.innerHTML = `<span class="time">${time}</span><span class="subject">${subject}</span><br><span class="data">${JSON.stringify(data, null, 2)}</span>`;
+  el.innerHTML = `
+    <span class="log-time">${time}</span>
+    <div class="log-body">
+      <div class="log-subject ${subjectClass}">${subject}</div>
+      <div class="log-data">${JSON.stringify(data, null, 2)}</div>
+    </div>`;
   logs.appendChild(el);
   logs.scrollTop = logs.scrollHeight;
 }
 
-// WebSocket
+function clearLogs() {
+  document.getElementById('logs').innerHTML = '<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">En attente d\\'événements...</div></div>';
+  logsEmpty = true;
+}
+
 function connectWS() {
   const ws = new WebSocket('ws://' + location.host + '/dev/ws');
   const status = document.getElementById('wsStatus');
-
-  ws.onopen = () => {
-    status.className = 'ws-status connected';
-    status.textContent = '● WebSocket connecté';
-  };
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    appendLog('', msg.subject, msg.data);
-  };
-
-  ws.onclose = () => {
-    status.className = 'ws-status disconnected';
-    status.textContent = '● WebSocket déconnecté — reconnexion dans 3s...';
-    setTimeout(connectWS, 3000);
-  };
+  ws.onopen = () => { status.className = 'badge connected'; status.textContent = 'connected'; };
+  ws.onmessage = (e) => { const m = JSON.parse(e.data); appendLog('', 'in', m.subject, m.data); };
+  ws.onclose = () => { status.className = 'badge disconnected'; status.textContent = 'disconnected'; setTimeout(connectWS, 3000); };
 }
 
-// Init
 addCharacter('char-1', 'A young woman with red hair and green eyes, wearing a blue dress');
 connectWS();
 </script>
