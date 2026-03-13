@@ -8,5 +8,6 @@ comfyui:
   vae: vae/
   checkpoints: checkpoints/
   clip_vision: clip_vision/
+  style_models: style_models/
   ipadapter: ipadapter/
   loras: loras/

@@ -89,23 +89,22 @@ dl \
   "$MODELS/vae/ae.safetensors" \
   "$HF_TOKEN"
 
-# ── 4. IP-Adapter FaceID SDXL (cohérence personnages entre scènes) ────────────
-# Nécessite InsightFace installé dans l'image Docker custom
+# ── 4. Flux Redux (cohérence visuelle personnages entre scènes) ───────────────
+# Nativement supporté par ComfyUI — pas de custom node requis
 
 echo ""
-echo "=== [4/5] IP-Adapter FaceID SDXL ==="
+echo "=== [4/5] Flux Redux + SigCLIP Vision ==="
+
+mkdir -p "$MODELS/style_models"
 
 dl \
-  "https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors" \
-  "$MODELS/clip_vision/clip_vision_h.safetensors"
+  "https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev/resolve/main/flux1-redux-dev.safetensors" \
+  "$MODELS/style_models/flux1-redux-dev.safetensors" \
+  "$HF_TOKEN"
 
 dl \
-  "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl.bin" \
-  "$MODELS/ipadapter/ip-adapter-faceid-plusv2_sdxl.bin"
-
-dl \
-  "https://huggingface.co/h94/IP-Adapter-FaceID/resolve/main/ip-adapter-faceid-plusv2_sdxl_lora.safetensors" \
-  "$MODELS/loras/ip-adapter-faceid-plusv2_sdxl_lora.safetensors"
+  "https://huggingface.co/Comfy-Org/sigclip_vision_384/resolve/main/sigclip_vision_patch14_384.safetensors" \
+  "$MODELS/clip_vision/sigclip_vision_patch14_384.safetensors"
 
 # ── 5. Wan 2.1 I2V — génération vidéo ────────────────────────────────────────
 # Modèle lourd (31 Go) — endpoint A100 80GB séparé
