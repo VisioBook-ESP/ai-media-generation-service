@@ -14,10 +14,13 @@ class RunPodClient:
         }
         self._webhook_base_url = webhook_base_url.rstrip("/")
 
-    async def submit_job(self, endpoint_id: str, workflow: dict, metadata: dict) -> str:
+    async def submit_job(self, endpoint_id: str, workflow: dict, metadata: dict, images: list | None = None) -> str:
         url = f"{RUNPOD_API_BASE}/{endpoint_id}/run"
+        job_input: dict = {"workflow": workflow, "metadata": metadata}
+        if images:
+            job_input["images"] = images
         payload = {
-            "input": {"workflow": workflow, "metadata": metadata},
+            "input": job_input,
             "webhook": f"{self._webhook_base_url}/webhook/runpod",
         }
 

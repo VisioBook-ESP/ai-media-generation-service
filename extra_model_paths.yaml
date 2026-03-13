@@ -11,3 +11,5 @@ comfyui:
   style_models: style_models/
   ipadapter: ipadapter/
   loras: loras/
+  pulid: pulid/
+  insightface: insightface/

@@ -6,9 +6,10 @@ logger = logging.getLogger(__name__)
 
 
 class NATSConsumer:
-    def __init__(self, settings, reference_handler):
+    def __init__(self, settings, reference_handler, scene_handler=None):
         self._settings = settings
         self._reference_handler = reference_handler
+        self._scene_handler = scene_handler
         self._nc = None
 
     async def start(self) -> None:
@@ -30,6 +31,15 @@ class NATSConsumer:
         )
         logger.info("NATS consumer started — listening on visiobook.media.generate_references")
 
+        if self._scene_handler:
+            await js.subscribe(
+                "visiobook.workflow.step.image_generation",
+                cb=self._on_image_generation,
+                durable="ai-media-gen-scenes",
+                stream=self._settings.NATS_STREAM,
+            )
+            logger.info("NATS consumer listening on visiobook.workflow.step.image_generation")
+
     async def _on_generate_references(self, msg) -> None:
         try:
             data = json.loads(msg.data)
@@ -40,7 +50,20 @@ class NATSConsumer:
             logger.exception("Error processing generate_references", exc_info=exc)
             await msg.nak(delay=5)
 
+    async def _on_image_generation(self, msg) -> None:
+        try:
+            data = json.loads(msg.data)
+            logger.info("Received image_generation event", extra={"projectId": data.get("projectId")})
+            await self._scene_handler.handle(data)
+            await msg.ack()
+        except Exception as exc:
+            logger.exception("Error processing image_generation", exc_info=exc)
+            await msg.nak(delay=5)
+
     async def stop(self) -> None:
         if self._nc:
-            await self._nc.drain()
+            try:
+                await self._nc.drain()
+            except Exception:
+                pass
             logger.info("NATS consumer stopped")

@@ -10,6 +10,7 @@ from app.clients.runpod import RunPodClient
 from app.clients.local_storage import LocalStorageClient
 from app.config import Settings
 from app.handlers.reference_handler import ReferenceHandler
+from app.handlers.scene_handler import SceneHandler
 from app.handlers.webhook_handler import WebhookHandler
 from app.nats.consumer import NATSConsumer
 from app.nats.publisher import NATSPublisher
@@ -31,9 +32,10 @@ async def lifespan(app: FastAPI):
     runpod = RunPodClient(settings.RUNPOD_API_KEY, settings.WEBHOOK_BASE_URL)
 
     ref_handler = ReferenceHandler(runpod, publisher, settings)
-    webhook_handler = WebhookHandler(storage, publisher)
+    scene_handler = SceneHandler(runpod, publisher, storage, settings)
+    webhook_handler = WebhookHandler(storage, publisher, runpod, settings)
 
-    consumer = NATSConsumer(settings, ref_handler)
+    consumer = NATSConsumer(settings, ref_handler, scene_handler)
     await consumer.start()
 
     app.state.settings = settings

@@ -34,6 +34,9 @@ class LocalStorageClient:
         dest.write_bytes(data)
         logger.info("File saved locally", extra={"path": str(dest)})
 
+    async def read_file(self, path: str) -> bytes:
+        return _resolve(path).read_bytes()
+
     async def download_file(self, path: str, local_path: str) -> None:
         src = _resolve(path)
         shutil.copy2(src, local_path)
