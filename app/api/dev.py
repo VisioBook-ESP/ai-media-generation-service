@@ -423,7 +423,7 @@ function addCharacter(id='', desc='') {
     <div class="card-title">Personnage #${n}</div>
     <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
     <div class="field"><label>characterId</label><input class="char-id" value="${id || 'char-' + n}"></div>
-    <div class="field"><label>physicalDescription</label><input class="char-desc" value="${desc}"></div>
+    <div class="field"><label>physicalDescription</label><input class="char-desc" value="${desc}" placeholder="Describe the full body, outfit, silhouette, accessories..."></div>
   `;
   document.getElementById('characters').appendChild(div);
 }
@@ -442,7 +442,7 @@ function addLocation(id='', desc='') {
   document.getElementById('locations').appendChild(div);
 }
 
-function addScene(id='', imagePrompt='', videoPrompt='') {
+function addScene(id='', imagePrompt='') {
   sceneCount++;
   const n = sceneCount;
   const div = document.createElement('div');
@@ -452,8 +452,6 @@ function addScene(id='', imagePrompt='', videoPrompt='') {
     <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
     <div class="field"><label>sceneId</label><input class="scene-id" value="${id || 'scene-' + n}"></div>
     <div class="field"><label>prompt image</label><textarea class="scene-img-prompt" rows="2">${imagePrompt}</textarea></div>
-    <div class="field"><label>prompt vidéo <span style="font-weight:400;color:var(--text-muted);font-size:10px">(endpoint VIDEO)</span></label>
-      <textarea class="scene-vid-prompt" rows="2" style="opacity:0.5">${videoPrompt}</textarea></div>
     <div class="nested-section">
       <div class="nested-label">Référence visuelle (optionnel)</div>
       <div class="ref-toggle">
@@ -537,15 +535,16 @@ async function send() {
         const locCard = el.querySelector('.loc-ref-card');
         const scene = {
           sceneId: el.querySelector('.scene-id').value,
-          prompts: {
+          prompt: {
             image: el.querySelector('.scene-img-prompt').value,
-            video: el.querySelector('.scene-vid-prompt').value,
-          },
-          characters: charCard ? [{
+          }
+        };
+        if (charCard) {
+          scene.characterRef = {
             characterId: charCard.querySelector('.ref-char-id').value,
             referenceImageUrl: charCard.querySelector('.ref-img-url').value,
-          }] : [],
-        };
+          };
+        }
         if (locCard) {
           scene.locationRef = {
             locationId: locCard.querySelector('.ref-loc-id').value,
@@ -643,8 +642,7 @@ addCharacter('char-1', 'Lucas, 8 years old, messy dark brown hair, bright amber 
 addLocation('loc-1', 'The Ancient Library — towering bookshelves reaching infinite heights, golden dust particles floating in warm light beams, hidden spiral staircases, leather-bound tomes glowing faintly');
 addScene(
   'scene-1',
-  'Lucas stands on a floating platform in the heart of the Ancient Library, ancient books swirling around him in a slow magical vortex, his amber eyes wide with awe, dramatic golden light rays pierce through the darkness above',
-  'Lucas slowly reaches out his hand as glowing books orbit around him, camera gently pulls back to reveal the infinite scale of the library, golden dust particles drift lazily through the warm light'
+  'Lucas stands on a floating platform in the heart of the Ancient Library, ancient books swirling around him in a slow magical vortex, his amber eyes wide with awe, dramatic golden light rays pierce through the darkness above'
 );
 connectWS();
 </script>

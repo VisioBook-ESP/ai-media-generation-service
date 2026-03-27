@@ -30,9 +30,9 @@
     "_meta": { "title": "FluxGuidance" }
   },
   "27": {
-    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 },
+    "inputs": { "width": 1024, "height": 1536, "batch_size": 1 },
     "class_type": "EmptySD3LatentImage",
-    "_meta": { "title": "Latent Image (portrait 1:1)" }
+    "_meta": { "title": "Latent Image (character reference 2:3)" }
   },
   "31": {
     "inputs": {
@@ -56,7 +56,7 @@
     "_meta": { "title": "VAE Decode" }
   },
   "9": {
-    "inputs": { "filename_prefix": "portrait", "images": ["8", 0] },
+    "inputs": { "filename_prefix": "character_reference", "images": ["8", 0] },
     "class_type": "SaveImage",
     "_meta": { "title": "Save Image" }
   }

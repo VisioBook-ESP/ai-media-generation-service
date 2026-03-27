@@ -13,18 +13,12 @@ class Settings(BaseSettings):
 
     RUNPOD_API_KEY: str
     RUNPOD_ENDPOINT_IMAGE: str
-    RUNPOD_ENDPOINT_VIDEO: str = ""
-    RUNPOD_ENDPOINT_AUDIO: str = ""
 
     WEBHOOK_BASE_URL: str
     WEBHOOK_SECRET: str = ""
 
     DEFAULT_IMAGE_WIDTH: int = 1024
     DEFAULT_IMAGE_HEIGHT: int = 1024
-    DEFAULT_VIDEO_WIDTH: int = 832
-    DEFAULT_VIDEO_HEIGHT: int = 480
-    DEFAULT_VIDEO_LENGTH: int = 81
-    DEFAULT_VIDEO_FPS: int = 16
 
     class Config:
         env_file = ".env"

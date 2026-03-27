@@ -43,9 +43,9 @@
       "face_analysis": ["6", 0],
       "image": ["7", 0],
       "method": "fidelity",
-      "weight": 0.9,
+      "weight": 0.85,
       "start_at": 0.0,
-      "end_at": 1.0
+      "end_at": 0.9
     },
     "class_type": "ApplyPulid"
   },

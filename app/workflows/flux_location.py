@@ -1,26 +1,17 @@
-import copy
-import json
-import random
-from pathlib import Path
+from app.workflows.common import load_template, random_seed
 
-_TEMPLATE_PATH = Path("workflow_templates/flux_location.json")
-_TEMPLATE: dict | None = None
-
-
-def _get_template() -> dict:
-    global _TEMPLATE
-    if _TEMPLATE is None:
-        _TEMPLATE = json.loads(_TEMPLATE_PATH.read_text())
-    return _TEMPLATE
+_REQUIRED_NODES = {"6", "27", "31", "33"}
 
 
 def build(location_description: str, visual_style: str, negative_prompt: str) -> dict:
-    workflow = copy.deepcopy(_get_template())
+    workflow = load_template("flux_location.json", _REQUIRED_NODES)
     workflow["6"]["inputs"]["text"] = (
         f"{location_description}, "
-        f"establishing shot, wide angle view, full environment visible, "
-        f"detailed scene, high quality, {visual_style}"
+        f"environment concept art, establishing shot, wide angle view, full environment visible, "
+        f"strong sense of place, no characters, no people, highly detailed background, {visual_style}"
     )
-    workflow["33"]["inputs"]["text"] = negative_prompt
-    workflow["31"]["inputs"]["seed"] = random.randint(0, 2**32 - 1)
+    workflow["33"]["inputs"]["text"] = (
+        f"people, characters, portrait framing, close-up subject, cropped environment, {negative_prompt}"
+    )
+    workflow["31"]["inputs"]["seed"] = random_seed()
     return workflow

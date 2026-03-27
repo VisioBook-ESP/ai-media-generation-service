@@ -1,7 +1,7 @@
 import base64
 import logging
 
-from app.workflows import flux_scene, flux_scene_redux, flux_scene_pulid, flux_scene_pulid_redux, wan_video
+from app.workflows import scene
 
 logger = logging.getLogger(__name__)
 
@@ -28,49 +28,20 @@ class SceneHandler:
 
         for scene in scenes:
             scene_id = scene["sceneId"]
-            prompts = scene["prompts"]
-            characters = scene.get("characters", [])
-
+            prompt = scene["prompt"]
+            character_ref = scene.get("characterRef")
             location_ref = scene.get("locationRef")
-            char_ref_url = characters[0]["referenceImageUrl"] if characters else None
+            char_ref_url = character_ref.get("referenceImageUrl") if character_ref else None
             loc_ref_url = location_ref.get("referenceImageUrl") if location_ref else None
 
-            if char_ref_url and loc_ref_url:
-                # PuLID (personnage) + Redux (lieu) simultanément
-                char_b64 = await self._load_image_b64(char_ref_url)
-                loc_b64 = await self._load_image_b64(loc_ref_url)
-                workflow = flux_scene_pulid_redux.build(
-                    scene_prompt=prompts["image"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
-                )
-                images = [
-                    {"name": "character.png", "image": char_b64},
-                    {"name": "location.png", "image": loc_b64},
-                ]
-            elif char_ref_url:
-                # PuLID seul : préserve l'identité faciale du personnage
-                workflow = flux_scene_pulid.build(
-                    scene_prompt=prompts["image"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
-                )
-                images = [{"name": "reference.png", "image": await self._load_image_b64(char_ref_url)}]
-            elif loc_ref_url:
-                # Redux seul : cohérence de style visuel du lieu
-                workflow = flux_scene_redux.build(
-                    scene_prompt=prompts["image"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
-                )
-                images = [{"name": "reference.png", "image": await self._load_image_b64(loc_ref_url)}]
-            else:
-                workflow = flux_scene.build(
-                    scene_prompt=prompts["image"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
-                )
-                images = []
+            workflow, images, mode = await scene.build(
+                scene_prompt=prompt["image"],
+                visual_style=book_style["visualStyle"],
+                negative_prompt=book_style.get("negativePrompt", ""),
+                character_ref_url=char_ref_url,
+                location_ref_url=loc_ref_url,
+                load_image_b64=self._load_image_b64,
+            )
 
             job_id = await self._runpod.submit_job(
                 endpoint_id=self._settings.RUNPOD_ENDPOINT_IMAGE,
@@ -81,7 +52,7 @@ class SceneHandler:
                     "scene_id": scene_id,
                     "project_id": project_id,
                     "execution_id": execution_id,
-                    "video_prompt": prompts.get("video", ""),
+                    "scene_mode": mode,
                 },
             )
             logger.info("Scene image job submitted", extra={"job_id": job_id, "scene_id": scene_id})
