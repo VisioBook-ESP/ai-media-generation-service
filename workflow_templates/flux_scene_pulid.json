@@ -13,15 +13,15 @@
   },
   "4": {
     "inputs": { "pulid_file": "pulid_flux_v0.9.1.safetensors" },
-    "class_type": "PulidModelLoader"
+    "class_type": "PulidFluxModelLoader"
   },
   "5": {
     "inputs": {},
-    "class_type": "PulidEvaClipLoader"
+    "class_type": "PulidFluxEvaClipLoader"
   },
   "6": {
     "inputs": { "provider": "CUDA" },
-    "class_type": "PulidInsightFaceLoader"
+    "class_type": "PulidFluxInsightFaceLoader"
   },
   "7": {
     "inputs": { "image": "reference.png", "upload": "image" },
@@ -38,16 +38,15 @@
   "10": {
     "inputs": {
       "model": ["1", 0],
-      "pulid": ["4", 0],
+      "pulid_flux": ["4", 0],
       "eva_clip": ["5", 0],
       "face_analysis": ["6", 0],
       "image": ["7", 0],
-      "method": "fidelity",
-      "weight": 0.85,
+      "weight": 0.8,
       "start_at": 0.0,
-      "end_at": 0.9
+      "end_at": 0.85
     },
-    "class_type": "ApplyPulid"
+    "class_type": "ApplyPulidFlux"
   },
   "11": {
     "inputs": { "guidance": 3.5, "conditioning": ["8", 0] },

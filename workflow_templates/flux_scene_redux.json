@@ -36,7 +36,7 @@
     "class_type": "CLIPTextEncode"
   },
   "10": {
-    "inputs": { "conditioning": ["8", 0], "style_model": ["5", 0], "clip_vision_output": ["7", 0], "strength": 0.15, "strength_type": "attn_bias" },
+    "inputs": { "conditioning": ["8", 0], "style_model": ["5", 0], "clip_vision_output": ["7", 0], "strength": 0.35, "strength_type": "multiply" },
     "class_type": "StyleModelApply"
   },
   "11": {

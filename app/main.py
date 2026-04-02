@@ -5,13 +5,11 @@ from fastapi import FastAPI
 
 from app.api.dev import router as dev_router
 from app.api.health import router as health_router
-from app.api.webhooks import router as webhook_router
-from app.clients.runpod import RunPodClient
+from app.clients.comfyui import ComfyUIClient
 from app.clients.local_storage import LocalStorageClient
 from app.config import Settings
 from app.handlers.reference_handler import ReferenceHandler
 from app.handlers.scene_handler import SceneHandler
-from app.handlers.webhook_handler import WebhookHandler
 from app.nats.consumer import NATSConsumer
 from app.nats.publisher import NATSPublisher
 
@@ -29,17 +27,15 @@ async def lifespan(app: FastAPI):
     await publisher.connect()
 
     storage = LocalStorageClient()
-    runpod = RunPodClient(settings.RUNPOD_API_KEY, settings.WEBHOOK_BASE_URL)
+    comfyui = ComfyUIClient(settings.COMFYUI_URL)
 
-    ref_handler = ReferenceHandler(runpod, publisher, settings)
-    scene_handler = SceneHandler(runpod, publisher, storage, settings)
-    webhook_handler = WebhookHandler(storage, publisher, runpod, settings)
+    ref_handler = ReferenceHandler(comfyui, publisher, storage, settings)
+    scene_handler = SceneHandler(comfyui, publisher, storage, settings)
 
     consumer = NATSConsumer(settings, ref_handler, scene_handler)
     await consumer.start()
 
     app.state.settings = settings
-    app.state.webhook_handler = webhook_handler
     app.state.publisher = publisher
 
     logger.info("Service ready on port %s", settings.PORT)
@@ -57,5 +53,4 @@ app = FastAPI(
 )
 
 app.include_router(health_router)
-app.include_router(webhook_router)
 app.include_router(dev_router)

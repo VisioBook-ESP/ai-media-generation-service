@@ -13,15 +13,15 @@
   },
   "4": {
     "inputs": { "pulid_file": "pulid_flux_v0.9.1.safetensors" },
-    "class_type": "PulidModelLoader"
+    "class_type": "PulidFluxModelLoader"
   },
   "5": {
     "inputs": {},
-    "class_type": "PulidEvaClipLoader"
+    "class_type": "PulidFluxEvaClipLoader"
   },
   "6": {
     "inputs": { "provider": "CUDA" },
-    "class_type": "PulidInsightFaceLoader"
+    "class_type": "PulidFluxInsightFaceLoader"
   },
   "7": {
     "inputs": { "clip_name": "sigclip_vision_patch14_384.safetensors" },
@@ -52,25 +52,24 @@
     "class_type": "CLIPTextEncode"
   },
   "14": {
-    "inputs": { "conditioning": ["12", 0], "style_model": ["8", 0], "clip_vision_output": ["11", 0], "strength": 0.15, "strength_type": "attn_bias" },
+    "inputs": { "conditioning": ["12", 0], "style_model": ["8", 0], "clip_vision_output": ["11", 0], "strength": 0.35, "strength_type": "multiply" },
     "class_type": "StyleModelApply"
   },
   "15": {
     "inputs": {
       "model": ["1", 0],
-      "pulid": ["4", 0],
+      "pulid_flux": ["4", 0],
       "eva_clip": ["5", 0],
       "face_analysis": ["6", 0],
       "image": ["9", 0],
-      "method": "fidelity",
-      "weight": 0.85,
+      "weight": 0.75,
       "start_at": 0.0,
-      "end_at": 0.9
+      "end_at": 0.85
     },
-    "class_type": "ApplyPulid"
+    "class_type": "ApplyPulidFlux"
   },
   "16": {
-    "inputs": { "guidance": 3.5, "conditioning": ["14", 0] },
+    "inputs": { "guidance": 4.0, "conditioning": ["14", 0] },
     "class_type": "FluxGuidance"
   },
   "17": {
@@ -79,7 +78,7 @@
   },
   "18": {
     "inputs": {
-      "seed": 0, "steps": 25, "cfg": 1,
+      "seed": 0, "steps": 28, "cfg": 1,
       "sampler_name": "euler", "scheduler": "beta", "denoise": 1,
       "model": ["15", 0], "positive": ["16", 0], "negative": ["13", 0], "latent_image": ["17", 0]
     },

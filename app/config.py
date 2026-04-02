@@ -11,11 +11,7 @@ class Settings(BaseSettings):
 
     STORAGE_URL: str = "http://storage-service:8085"
 
-    RUNPOD_API_KEY: str
-    RUNPOD_ENDPOINT_IMAGE: str
-
-    WEBHOOK_BASE_URL: str
-    WEBHOOK_SECRET: str = ""
+    COMFYUI_URL: str = "http://localhost:8188"
 
     DEFAULT_IMAGE_WIDTH: int = 1024
     DEFAULT_IMAGE_HEIGHT: int = 1024
