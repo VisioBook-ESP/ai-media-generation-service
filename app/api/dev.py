@@ -287,6 +287,9 @@ _HTML = """<!DOCTYPE html>
   <button class="top-tab" onclick="switchTab('scenes')" id="tab-scenes">
     Scènes <span class="tab-pill">2</span>
   </button>
+  <button class="top-tab" onclick="switchTab('animations')" id="tab-animations">
+    Animations <span class="tab-pill">3</span>
+  </button>
 </div>
 
 <div class="main">
@@ -330,6 +333,14 @@ _HTML = """<!DOCTYPE html>
           <div class="section-label">Scènes</div>
           <div id="scenes"></div>
           <button class="btn-add" onclick="addScene()">+ Ajouter une scène</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-animations">
+        <div class="section">
+          <div class="section-label">Scènes à animer</div>
+          <div id="animScenes"></div>
+          <button class="btn-add" onclick="addAnimScene()">+ Ajouter une scène</button>
         </div>
       </div>
     </div>
@@ -388,8 +399,11 @@ function switchTab(tab) {
   if (tab === 'refs') {
     btn.textContent = 'Publier generate_references';
     btn.className = 'btn-submit refs';
-  } else {
+  } else if (tab === 'scenes') {
     btn.textContent = 'Publier image_generation';
+    btn.className = 'btn-submit scenes';
+  } else {
+    btn.textContent = 'Publier animation_generation';
     btn.className = 'btn-submit scenes';
   }
 }
@@ -497,6 +511,22 @@ function setRef(btn, type) {
   }
 }
 
+let animSceneCount = 0;
+function addAnimScene(id='', prompt='', imageUrl='') {
+  animSceneCount++;
+  const n = animSceneCount;
+  const div = document.createElement('div');
+  div.className = 'card scene-card';
+  div.innerHTML = `
+    <div class="card-title">Scène #${n}</div>
+    <button class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    <div class="field"><label>sceneId</label><input class="anim-scene-id" value="${id || 'scene-' + n}"></div>
+    <div class="field"><label>prompt (motion description)</label><textarea class="anim-prompt" rows="2">${prompt}</textarea></div>
+    <div class="field"><label>sceneImageUrl (storage path)</label><input class="anim-img-url" value="${imageUrl || 'projects/test-001/scenes/scene-' + n + '/image.png'}"></div>
+  `;
+  document.getElementById('animScenes').appendChild(div);
+}
+
 async function send() {
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -521,7 +551,7 @@ async function send() {
         description: el.querySelector('.loc-desc').value,
       })),
     };
-  } else {
+  } else if (activeTab === 'scenes') {
     subject = 'visiobook.workflow.step.image_generation';
     payload = {
       projectId: document.getElementById('projectId').value,
@@ -553,6 +583,17 @@ async function send() {
         }
         return scene;
       }),
+    };
+  } else {
+    subject = 'visiobook.workflow.step.animation_generation';
+    payload = {
+      projectId: document.getElementById('projectId').value,
+      executionId: document.getElementById('executionId').value,
+      scenes: [...document.querySelectorAll('#animScenes .scene-card')].map(el => ({
+        sceneId: el.querySelector('.anim-scene-id').value,
+        prompt: { image: el.querySelector('.anim-prompt').value },
+        sceneImageUrl: el.querySelector('.anim-img-url').value,
+      })),
     };
   }
   try {
@@ -629,6 +670,8 @@ function connectWS() {
       const type = d.characterId ? 'character' : 'location';
       const id = d.characterId || d.locationId || 'ref';
       addImage(d.referenceImageUrl, id, type);
+    } else if (m.subject === 'visiobook.ai.media.animation.completed' && d.mediaUrl) {
+      addImage(d.mediaUrl, d.sceneId || 'anim', 'scene');
     }
   };
   ws.onclose = () => {
@@ -643,6 +686,11 @@ addLocation('loc-1', 'The Ancient Library — towering bookshelves reaching infi
 addScene(
   'scene-1',
   'Lucas stands on a floating platform in the heart of the Ancient Library, ancient books swirling around him in a slow magical vortex, his amber eyes wide with awe, dramatic golden light rays pierce through the darkness above'
+);
+addAnimScene(
+  'scene-1',
+  'Golden dust particles floating upward, books gently hovering and rotating around the character, warm light rays shifting slowly, hair and clothes swaying softly',
+  'projects/test-001/scenes/scene-1/image.png'
 );
 connectWS();
 </script>

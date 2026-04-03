@@ -8,7 +8,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _POLL_INTERVAL = 2.0
-_POLL_TIMEOUT = 300.0
+_POLL_TIMEOUT = 600.0
 
 
 class ComfyUIClient:
@@ -16,16 +16,17 @@ class ComfyUIClient:
         self._base_url = base_url.rstrip("/")
 
     async def run_workflow(
-        self, workflow: dict, images: list[dict] | None = None
+        self, workflow: dict, images: list[dict] | None = None, output_type: str = "image"
     ) -> bytes:
-        async with httpx.AsyncClient(base_url=self._base_url, timeout=120) as client:
+        timeout = 120 if output_type == "image" else 600
+        async with httpx.AsyncClient(base_url=self._base_url, timeout=timeout) as client:
             if images:
                 for img in images:
                     await self._upload_image(client, img["name"], img["image"])
 
             prompt_id = await self._queue_prompt(client, workflow)
             output = await self._poll_until_done(client, prompt_id)
-            return await self._download_output(client, output)
+            return await self._download_output(client, output, output_type)
 
     async def _upload_image(
         self, client: httpx.AsyncClient, name: str, b64_data: str
@@ -58,6 +59,10 @@ class ComfyUIClient:
         elapsed = 0.0
         while elapsed < _POLL_TIMEOUT:
             resp = await client.get(f"/history/{prompt_id}")
+            if resp.status_code == 404:
+                await asyncio.sleep(_POLL_INTERVAL)
+                elapsed += _POLL_INTERVAL
+                continue
             resp.raise_for_status()
             history = resp.json()
 
@@ -77,14 +82,17 @@ class ComfyUIClient:
 
         raise TimeoutError(f"ComfyUI prompt {prompt_id} timed out after {_POLL_TIMEOUT}s")
 
-    async def _download_output(self, client: httpx.AsyncClient, outputs: dict) -> bytes:
+    async def _download_output(
+        self, client: httpx.AsyncClient, outputs: dict, output_type: str = "image"
+    ) -> bytes:
         for node_id, node_output in outputs.items():
-            images = node_output.get("images", [])
-            if images:
-                img = images[0]
-                filename = img["filename"]
-                subfolder = img.get("subfolder", "")
-                folder_type = img.get("type", "output")
+            # ComfyUI stores animated WEBP in "gifs" key, images in "images" key
+            candidates = node_output.get("gifs", []) or node_output.get("images", [])
+            if candidates:
+                item = candidates[0]
+                filename = item["filename"]
+                subfolder = item.get("subfolder", "")
+                folder_type = item.get("type", "output")
                 resp = await client.get(
                     "/view",
                     params={
@@ -94,7 +102,7 @@ class ComfyUIClient:
                     },
                 )
                 resp.raise_for_status()
-                logger.info("Downloaded output image: %s", filename)
+                logger.info("Downloaded output %s: %s", output_type, filename)
                 return resp.content
 
-        raise ValueError("No output images found in ComfyUI response")
+        raise ValueError(f"No output {output_type}s found in ComfyUI response")

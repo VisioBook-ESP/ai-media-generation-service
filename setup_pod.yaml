@@ -1,0 +1,28 @@
+# RunPod Pod Configuration
+# ========================
+
+image: vattv/visiobook-comfyui:v24
+
+start_command: bash /runpod-volume/start.sh
+
+volume:
+  mount_path: /runpod-volume
+
+expose_ports:
+  - 8188/http
+
+gpu: 2x RTX PRO 4500 (32GB VRAM each)
+
+# Models on volume (already installed):
+#   - diffusion_models/flux1_dev_fp16.safetensors
+#   - diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors
+#   - text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+#   - text_encoders/t5xxl_fp16.safetensors
+#   - text_encoders/clip_l.safetensors
+#   - clip_vision/clip_vision_h.safetensors
+#   - clip_vision/sigclip_vision_patch14_384.safetensors
+#   - vae/ae.safetensors
+#   - vae/wan_2.1_vae.safetensors
+#   - style_models/flux1-redux-dev.safetensors
+#   - pulid/pulid_flux_v0.9.1.safetensors
+#   - insightface/models/antelopev2/

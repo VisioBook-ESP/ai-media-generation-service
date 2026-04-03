@@ -8,6 +8,7 @@ from app.api.health import router as health_router
 from app.clients.comfyui import ComfyUIClient
 from app.clients.local_storage import LocalStorageClient
 from app.config import Settings
+from app.handlers.animation_handler import AnimationHandler
 from app.handlers.reference_handler import ReferenceHandler
 from app.handlers.scene_handler import SceneHandler
 from app.nats.consumer import NATSConsumer
@@ -31,8 +32,9 @@ async def lifespan(app: FastAPI):
 
     ref_handler = ReferenceHandler(comfyui, publisher, storage, settings)
     scene_handler = SceneHandler(comfyui, publisher, storage, settings)
+    animation_handler = AnimationHandler(comfyui, publisher, storage, settings)
 
-    consumer = NATSConsumer(settings, ref_handler, scene_handler)
+    consumer = NATSConsumer(settings, ref_handler, scene_handler, animation_handler)
     await consumer.start()
 
     app.state.settings = settings
