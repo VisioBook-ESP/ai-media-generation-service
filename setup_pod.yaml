@@ -1,7 +1,7 @@
 # RunPod Pod Configuration
 # ========================
 
-image: vattv/visiobook-comfyui:v24
+image: vattv/visiobook-comfyui:v39
 
 start_command: bash /runpod-volume/start.sh
 
@@ -11,7 +11,7 @@ volume:
 expose_ports:
   - 8188/http
 
-gpu: 2x RTX PRO 4500 (32GB VRAM each)
+gpu: 1x RTX PRO 6000
 
 # Models on volume (already installed):
 #   - diffusion_models/flux1_dev_fp16.safetensors

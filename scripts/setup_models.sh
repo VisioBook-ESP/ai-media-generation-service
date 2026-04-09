@@ -5,7 +5,7 @@ set -euo pipefail
 # Script de setup complet du network volume RunPod
 # Usage : HF_TOKEN=hf_xxx bash setup_models.sh
 #
-# Lancer depuis un pod RunPod avec le volume Visiobook attaché à /workspace
+# Lancer depuis un pod RunPod avec le volume Visiobook attaché à /runpod-volume
 # =============================================================================
 
 if [[ -z "${HF_TOKEN:-}" ]]; then
@@ -14,12 +14,12 @@ if [[ -z "${HF_TOKEN:-}" ]]; then
   exit 1
 fi
 
-if ! df -h /workspace &>/dev/null; then
-  echo "Erreur : /workspace n'est pas monté."
+if ! df -h /runpod-volume &>/dev/null; then
+  echo "Erreur : /runpod-volume n'est pas monté."
   exit 1
 fi
 
-MODELS="/workspace/models"
+MODELS="/runpod-volume/models"
 
 # ── Création de la structure de dossiers ──────────────────────────────────────
 
@@ -144,26 +144,26 @@ else
   echo "  [OK]   antelopev2 — $(du -sh "$ANTELOPE_DIR" | cut -f1)"
 fi
 
-# ── 7. Wan 2.1 I2V — génération vidéo ────────────────────────────────────────
-# Modèle lourd (31 Go) — endpoint A100 80GB séparé
-# Source : Comfy-Org/Wan_2.1_ComfyUI_repackaged (format ComfyUI natif)
+# ── 7. LTX-Video 13B — animation image-to-video ─────────────────────────────
+# Modèle Lightricks LTX-Video 13B 0.9.8 dev (~28.5 Go)
+# Custom node requis : https://github.com/Lightricks/ComfyUI-LTXVideo
 
 echo ""
-echo "=== [7/7] Wan 2.1 I2V 480p 14B (~31 Go) ==="
-
-WAN_BASE="https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files"
+echo "=== [7/8] LTX-Video 13B 0.9.8 dev (~28.5 Go) ==="
 
 dl \
-  "$WAN_BASE/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors" \
-  "$MODELS/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors"
+  "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltxv-13b-0.9.8-dev.safetensors" \
+  "$MODELS/checkpoints/ltxv-13b-0.9.8-dev.safetensors"
+
+# ── 8. LTX-Video Gemma text encoder ─────────────────────────────────────────
+# Gemma 3 12B IT — text encoder requis par LTX-Video 13B 0.9.8
+
+echo ""
+echo "=== [8/8] Gemma 3 12B text encoder (~24 Go) ==="
 
 dl \
-  "$WAN_BASE/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
-  "$MODELS/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
-
-dl \
-  "$WAN_BASE/vae/wan_2.1_vae.safetensors" \
-  "$MODELS/vae/wan_2.1_vae.safetensors"
+  "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" \
+  "$MODELS/text_encoders/comfy_gemma_3_12B_it.safetensors"
 
 # ── Résumé ────────────────────────────────────────────────────────────────────
 

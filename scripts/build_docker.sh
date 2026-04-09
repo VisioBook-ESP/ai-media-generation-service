@@ -3,7 +3,7 @@ set -euo pipefail
 
 BASE_IMAGE="vattv/visiobook-comfyui"
 REPO_DIR="/tmp/worker-comfyui"
-COMFYUI_VERSION="latest"
+COMFYUI_VERSION="v0.18.5"
 
 VERSION_FILE="$(dirname "$0")/.docker_version"
 VERSION=$(( $(cat "$VERSION_FILE" 2>/dev/null || echo 0) + 1 ))
@@ -35,7 +35,10 @@ dockerfile.write_text(text.replace(old, new, 1))
 PY
 cp "$(dirname "$0")/../extra_model_paths.yaml" "$REPO_DIR/extra_model_paths.yaml"
 printf "\nCOPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml\n" >> "$REPO_DIR/Dockerfile"
+printf "RUN /opt/venv/bin/pip freeze > /tmp/freeze.txt && grep -vxE 'torch|torchvision|torchaudio' /comfyui/requirements.txt > /tmp/reqs.txt && /opt/venv/bin/pip install -r /tmp/reqs.txt -c /tmp/freeze.txt\n" >> "$REPO_DIR/Dockerfile"
+printf "RUN /opt/venv/bin/pip install torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128\n" >> "$REPO_DIR/Dockerfile"
 printf "RUN cd /comfyui/custom_nodes && git clone https://github.com/zhangp365/ComfyUI-PuLID-Flux.git\n" >> "$REPO_DIR/Dockerfile"
+printf "RUN cd /comfyui/custom_nodes && git clone https://github.com/Lightricks/ComfyUI-LTXVideo.git\n" >> "$REPO_DIR/Dockerfile"
 cp "$(dirname "$0")/patch_pulidflux.py" "$REPO_DIR/patch_pulidflux.py"
 printf "COPY patch_pulidflux.py /tmp/patch_pulidflux.py\n" >> "$REPO_DIR/Dockerfile"
 printf "RUN /opt/venv/bin/python /tmp/patch_pulidflux.py\n" >> "$REPO_DIR/Dockerfile"
@@ -59,6 +62,7 @@ docker run --rm "$IMAGE" sh -lc "grep -R \"ApplyPulidFlux\\|PulidFluxModelLoader
 docker run --rm "$IMAGE" sh -lc "test -L /comfyui/models/clip/EVA02_CLIP_L_336_psz14_s6B.pt"
 docker run --rm "$IMAGE" sh -lc "test -L /comfyui/models/insightface/models/antelopev2"
 docker run --rm "$IMAGE" sh -lc "cd /comfyui/custom_nodes/ComfyUI-PuLID-Flux && git rev-parse HEAD"
+docker run --rm "$IMAGE" test -d /comfyui/custom_nodes/ComfyUI-LTXVideo
 docker run --rm "$IMAGE" sh -lc "grep -q 'timestep_zero_index' /comfyui/custom_nodes/ComfyUI-PuLID-Flux/pulidflux.py && echo 'PuLID patch: OK' || (echo 'PuLID patch: MISSING' && exit 1)"
 docker push "$IMAGE"
 

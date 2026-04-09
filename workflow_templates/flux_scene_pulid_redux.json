@@ -69,7 +69,7 @@
     "class_type": "ApplyPulidFlux"
   },
   "16": {
-    "inputs": { "guidance": 4.0, "conditioning": ["14", 0] },
+    "inputs": { "guidance": 6.0, "conditioning": ["14", 0] },
     "class_type": "FluxGuidance"
   },
   "17": {
