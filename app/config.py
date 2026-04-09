@@ -6,15 +6,19 @@ class Settings(BaseSettings):
     ENV: str = "development"
     LOG_LEVEL: str = "info"
 
+    # NATS JetStream
     NATS_URL: str = "nats://nats:4222"
     NATS_STREAM: str = "visiobook"
 
-    STORAGE_URL: str = "http://storage-service:8085"
-
+    # ComfyUI (RunPod pod)
     COMFYUI_URL: str = "http://localhost:8188"
 
-    DEFAULT_IMAGE_WIDTH: int = 1024
-    DEFAULT_IMAGE_HEIGHT: int = 1024
+    # S3 / MinIO storage
+    S3_ENDPOINT_URL: str = "http://minio:9000"
+    S3_BUCKET: str = "visiobook"
+    S3_ACCESS_KEY: str = "minioadmin"
+    S3_SECRET_KEY: str = "minioadmin"
+    S3_REGION: str = "us-east-1"
 
     class Config:
         env_file = ".env"

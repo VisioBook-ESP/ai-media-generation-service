@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 _POLL_INTERVAL = 2.0
 _POLL_TIMEOUT = 600.0
+_MAX_RETRIES = 2
+_RETRY_DELAY = 10.0
 
 
 class ComfyUIClient:
@@ -17,6 +19,23 @@ class ComfyUIClient:
 
     async def run_workflow(
         self, workflow: dict, images: list[dict] | None = None, output_type: str = "image"
+    ) -> bytes:
+        last_exc = None
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                return await self._run_once(workflow, images, output_type)
+            except Exception as exc:
+                last_exc = exc
+                if attempt < _MAX_RETRIES:
+                    logger.warning(
+                        "ComfyUI attempt %d/%d failed: %s — retrying in %ss",
+                        attempt, _MAX_RETRIES, exc, _RETRY_DELAY,
+                    )
+                    await asyncio.sleep(_RETRY_DELAY)
+        raise last_exc
+
+    async def _run_once(
+        self, workflow: dict, images: list[dict] | None, output_type: str
     ) -> bytes:
         timeout = 120 if output_type == "image" else 600
         async with httpx.AsyncClient(base_url=self._base_url, timeout=timeout) as client:
@@ -86,7 +105,6 @@ class ComfyUIClient:
         self, client: httpx.AsyncClient, outputs: dict, output_type: str = "image"
     ) -> bytes:
         for node_id, node_output in outputs.items():
-            # ComfyUI stores animated WEBP in "gifs" key, images in "images" key
             candidates = node_output.get("gifs", []) or node_output.get("images", [])
             if candidates:
                 item = candidates[0]

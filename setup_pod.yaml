@@ -11,18 +11,16 @@ volume:
 expose_ports:
   - 8188/http
 
-gpu: 1x RTX PRO 6000
+gpu: 1x (24GB+ VRAM required — RTX 4090, RTX 6000, A100, L40S, A40)
 
-# Models on volume (already installed):
-#   - diffusion_models/flux1_dev_fp16.safetensors
-#   - diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors
-#   - text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
-#   - text_encoders/t5xxl_fp16.safetensors
-#   - text_encoders/clip_l.safetensors
-#   - clip_vision/clip_vision_h.safetensors
-#   - clip_vision/sigclip_vision_patch14_384.safetensors
-#   - vae/ae.safetensors
-#   - vae/wan_2.1_vae.safetensors
-#   - style_models/flux1-redux-dev.safetensors
-#   - pulid/pulid_flux_v0.9.1.safetensors
-#   - insightface/models/antelopev2/
+# Models on volume (installed via scripts/setup_models.sh):
+#   - diffusion_models/flux1_dev_fp16.safetensors          (~23 GB)
+#   - text_encoders/t5xxl_fp16.safetensors                 (~9 GB)
+#   - text_encoders/clip_l.safetensors                     (~250 MB)
+#   - text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt          (~856 MB)
+#   - clip_vision/sigclip_vision_patch14_384.safetensors    (~800 MB)
+#   - vae/ae.safetensors                                   (~160 MB)
+#   - style_models/flux1-redux-dev.safetensors              (~300 MB)
+#   - pulid/pulid_flux_v0.9.1.safetensors                  (~1.1 GB)
+#   - insightface/models/antelopev2/                       (~430 MB)
+#   - checkpoints/ltxv-13b-0.9.8-dev.safetensors           (~28.5 GB)

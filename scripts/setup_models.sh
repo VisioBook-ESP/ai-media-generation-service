@@ -149,21 +149,11 @@ fi
 # Custom node requis : https://github.com/Lightricks/ComfyUI-LTXVideo
 
 echo ""
-echo "=== [7/8] LTX-Video 13B 0.9.8 dev (~28.5 Go) ==="
+echo "=== [7/7] LTX-Video 13B 0.9.8 dev (~28.5 Go) ==="
 
 dl \
   "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltxv-13b-0.9.8-dev.safetensors" \
   "$MODELS/checkpoints/ltxv-13b-0.9.8-dev.safetensors"
-
-# ── 8. LTX-Video Gemma text encoder ─────────────────────────────────────────
-# Gemma 3 12B IT — text encoder requis par LTX-Video 13B 0.9.8
-
-echo ""
-echo "=== [8/8] Gemma 3 12B text encoder (~24 Go) ==="
-
-dl \
-  "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" \
-  "$MODELS/text_encoders/comfy_gemma_3_12B_it.safetensors"
 
 # ── Résumé ────────────────────────────────────────────────────────────────────
 

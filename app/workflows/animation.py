@@ -3,15 +3,13 @@ from app.workflows.common import load_template, random_seed
 _REQUIRED_NODES = {"3", "4", "10"}
 
 _ANIMATION_QUALITY = (
-    "cinemagraph, living painting, locked-off tripod shot, fixed frame, "
-    "static background, subtle ambient motion only, "
-    "particles floating, light flickering, gentle breeze effects, "
-    "high quality, smooth animation"
-)
-_ANIMATION_NEGATIVE = (
-    "camera movement, camera zoom, camera pan, camera shake, "
-    "morphing, warping, deformation, "
-    "worst quality, low quality, blurry, distorted"
+    "cinematic, stable locked tripod camera, NO camera movement, "
+    "subtle ambient animation only, "
+    "particles floating gently in warm light, dust motes catching sunlight, "
+    "soft fabric and hair swaying with gentle breeze, "
+    "light flickering subtly, warm intimate lighting, "
+    "perfectly still background, smooth gentle motion, "
+    "high quality, refined and polished"
 )
 
 
@@ -26,8 +24,6 @@ def build(
         positive = f"{positive}, {visual_style}"
 
     workflow["4"]["inputs"]["text"] = positive
-    workflow["5"]["inputs"]["text"] = _ANIMATION_NEGATIVE
     workflow["10"]["inputs"]["noise_seed"] = random_seed()
 
-    # Same image for first AND last frame → locks camera, prevents zoom drift
     return workflow, [{"name": "scene.png", "image": None}]

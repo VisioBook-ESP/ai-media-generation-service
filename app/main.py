@@ -3,10 +3,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.dev import router as dev_router
 from app.api.health import router as health_router
 from app.clients.comfyui import ComfyUIClient
 from app.clients.local_storage import LocalStorageClient
+from app.clients.s3_storage import S3StorageClient
 from app.config import Settings
 from app.handlers.animation_handler import AnimationHandler
 from app.handlers.reference_handler import ReferenceHandler
@@ -20,14 +20,28 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 
 
+def _build_storage(settings: Settings):
+    if settings.ENV == "development":
+        logger.info("Using local filesystem storage (dev mode)")
+        return LocalStorageClient()
+    logger.info("Using S3 storage: %s/%s", settings.S3_ENDPOINT_URL, settings.S3_BUCKET)
+    return S3StorageClient(
+        endpoint_url=settings.S3_ENDPOINT_URL,
+        bucket=settings.S3_BUCKET,
+        access_key=settings.S3_ACCESS_KEY,
+        secret_key=settings.S3_SECRET_KEY,
+        region=settings.S3_REGION,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting ai-media-generation-service...")
+    logger.info("Starting ai-media-generation-service (env=%s)...", settings.ENV)
 
     publisher = NATSPublisher(settings)
     await publisher.connect()
 
-    storage = LocalStorageClient()
+    storage = _build_storage(settings)
     comfyui = ComfyUIClient(settings.COMFYUI_URL)
 
     ref_handler = ReferenceHandler(comfyui, publisher, storage, settings)
@@ -39,6 +53,8 @@ async def lifespan(app: FastAPI):
 
     app.state.settings = settings
     app.state.publisher = publisher
+    app.state.nats_consumer = consumer
+    app.state.comfyui = comfyui
 
     logger.info("Service ready on port %s", settings.PORT)
     yield
@@ -55,4 +71,3 @@ app = FastAPI(
 )
 
 app.include_router(health_router)
-app.include_router(dev_router)

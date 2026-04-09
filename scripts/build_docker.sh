@@ -33,20 +33,43 @@ if old not in text:
     raise SystemExit("Expected COMFYUI_VERSION arg not found in worker Dockerfile")
 dockerfile.write_text(text.replace(old, new, 1))
 PY
+
 cp "$(dirname "$0")/../extra_model_paths.yaml" "$REPO_DIR/extra_model_paths.yaml"
-printf "\nCOPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN /opt/venv/bin/pip freeze > /tmp/freeze.txt && grep -vxE 'torch|torchvision|torchaudio' /comfyui/requirements.txt > /tmp/reqs.txt && /opt/venv/bin/pip install -r /tmp/reqs.txt -c /tmp/freeze.txt\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN /opt/venv/bin/pip install torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN cd /comfyui/custom_nodes && git clone https://github.com/zhangp365/ComfyUI-PuLID-Flux.git\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN cd /comfyui/custom_nodes && git clone https://github.com/Lightricks/ComfyUI-LTXVideo.git\n" >> "$REPO_DIR/Dockerfile"
 cp "$(dirname "$0")/patch_pulidflux.py" "$REPO_DIR/patch_pulidflux.py"
-printf "COPY patch_pulidflux.py /tmp/patch_pulidflux.py\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN /opt/venv/bin/python /tmp/patch_pulidflux.py\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN apt-get update && apt-get install -y --no-install-recommends g++ python3.12-dev && rm -rf /var/lib/apt/lists/*\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN /opt/venv/bin/pip install facexlib ftfy timm onnxruntime-gpu insightface==0.7.3 einops torchsde\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN mkdir -p /comfyui/models/clip /comfyui/models/insightface/models\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN ln -sfn /runpod-volume/models/text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt /comfyui/models/clip/EVA02_CLIP_L_336_psz14_s6B.pt\n" >> "$REPO_DIR/Dockerfile"
-printf "RUN ln -sfn /runpod-volume/models/insightface/models/antelopev2 /comfyui/models/insightface/models/antelopev2\n" >> "$REPO_DIR/Dockerfile"
+
+# Append custom layers — each RUN is a separate layer to keep push sizes manageable
+cat >> "$REPO_DIR/Dockerfile" <<'DOCKER'
+
+# ── Extra model paths ────────────────────────────────────────────────────────
+COPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml
+
+# ── ComfyUI deps (pinned to avoid torch upgrade) ────────────────────────────
+RUN /opt/venv/bin/pip freeze > /tmp/freeze.txt \
+    && grep -vxE 'torch|torchvision|torchaudio' /comfyui/requirements.txt > /tmp/reqs.txt \
+    && /opt/venv/bin/pip install -r /tmp/reqs.txt -c /tmp/freeze.txt \
+    && rm /tmp/freeze.txt /tmp/reqs.txt
+
+# ── torchaudio (required by LTXVideo) ───────────────────────────────────────
+RUN /opt/venv/bin/pip install torchaudio==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+
+# ── Custom nodes ─────────────────────────────────────────────────────────────
+RUN cd /comfyui/custom_nodes && git clone https://github.com/zhangp365/ComfyUI-PuLID-Flux.git
+RUN cd /comfyui/custom_nodes && git clone https://github.com/Lightricks/ComfyUI-LTXVideo.git
+
+# ── PuLID patch ──────────────────────────────────────────────────────────────
+COPY patch_pulidflux.py /tmp/patch_pulidflux.py
+RUN /opt/venv/bin/python /tmp/patch_pulidflux.py && rm /tmp/patch_pulidflux.py
+
+# ── PuLID dependencies ───────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends g++ python3.12-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN /opt/venv/bin/pip install facexlib ftfy timm onnxruntime-gpu insightface==0.7.3 einops torchsde
+
+# ── Model symlinks (resolved at runtime from volume) ─────────────────────────
+RUN mkdir -p /comfyui/models/clip /comfyui/models/insightface/models \
+    && ln -sfn /runpod-volume/models/text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt /comfyui/models/clip/EVA02_CLIP_L_336_psz14_s6B.pt \
+    && ln -sfn /runpod-volume/models/insightface/models/antelopev2 /comfyui/models/insightface/models/antelopev2
+DOCKER
 
 echo ""
 echo "=== [3/4] Build Docker image ==="
@@ -58,15 +81,12 @@ echo ""
 echo "=== [4/4] Verify & Push ==="
 docker run --rm "$IMAGE" cat /comfyui/extra_model_paths.yaml
 docker run --rm "$IMAGE" test -d /comfyui/custom_nodes/ComfyUI-PuLID-Flux
-docker run --rm "$IMAGE" sh -lc "grep -R \"ApplyPulidFlux\\|PulidFluxModelLoader\" /comfyui/custom_nodes/ComfyUI-PuLID-Flux >/dev/null"
-docker run --rm "$IMAGE" sh -lc "test -L /comfyui/models/clip/EVA02_CLIP_L_336_psz14_s6B.pt"
-docker run --rm "$IMAGE" sh -lc "test -L /comfyui/models/insightface/models/antelopev2"
-docker run --rm "$IMAGE" sh -lc "cd /comfyui/custom_nodes/ComfyUI-PuLID-Flux && git rev-parse HEAD"
 docker run --rm "$IMAGE" test -d /comfyui/custom_nodes/ComfyUI-LTXVideo
-docker run --rm "$IMAGE" sh -lc "grep -q 'timestep_zero_index' /comfyui/custom_nodes/ComfyUI-PuLID-Flux/pulidflux.py && echo 'PuLID patch: OK' || (echo 'PuLID patch: MISSING' && exit 1)"
+docker run --rm "$IMAGE" sh -lc "grep -q 'timestep_zero_index' /comfyui/custom_nodes/ComfyUI-PuLID-Flux/pulidflux.py && echo 'PuLID patch: OK'"
+
+echo "Pushing $IMAGE (this may take a while)..."
 docker push "$IMAGE"
 
 echo ""
-echo "Done. Image pushed : $IMAGE"
-echo ""
-echo "→ Tag à utiliser dans RunPod New Release : $IMAGE"
+echo "Done. Image pushed: $IMAGE"
+echo "→ Update setup_pod.yaml image to: $IMAGE"

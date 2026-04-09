@@ -40,6 +40,10 @@
     "class_type": "LoadImage"
   },
   "11": {
+    "inputs": { "clip_vision": ["7", 0], "image": ["9", 0], "crop": "center" },
+    "class_type": "CLIPVisionEncode"
+  },
+  "21": {
     "inputs": { "clip_vision": ["7", 0], "image": ["10", 0], "crop": "center" },
     "class_type": "CLIPVisionEncode"
   },
@@ -52,7 +56,11 @@
     "class_type": "CLIPTextEncode"
   },
   "14": {
-    "inputs": { "conditioning": ["12", 0], "style_model": ["8", 0], "clip_vision_output": ["11", 0], "strength": 0.35, "strength_type": "multiply" },
+    "inputs": { "conditioning": ["12", 0], "style_model": ["8", 0], "clip_vision_output": ["11", 0], "strength": 0.25, "strength_type": "multiply" },
+    "class_type": "StyleModelApply"
+  },
+  "22": {
+    "inputs": { "conditioning": ["14", 0], "style_model": ["8", 0], "clip_vision_output": ["21", 0], "strength": 0.5, "strength_type": "multiply" },
     "class_type": "StyleModelApply"
   },
   "15": {
@@ -62,14 +70,14 @@
       "eva_clip": ["5", 0],
       "face_analysis": ["6", 0],
       "image": ["9", 0],
-      "weight": 0.75,
+      "weight": 0.85,
       "start_at": 0.0,
-      "end_at": 0.85
+      "end_at": 0.9
     },
     "class_type": "ApplyPulidFlux"
   },
   "16": {
-    "inputs": { "guidance": 6.0, "conditioning": ["14", 0] },
+    "inputs": { "guidance": 7.0, "conditioning": ["22", 0] },
     "class_type": "FluxGuidance"
   },
   "17": {
