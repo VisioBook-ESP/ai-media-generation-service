@@ -167,6 +167,7 @@ class PipelineHandler:
                 workflow, anim_images = animation.build(
                     scene_prompt=scene_data.get("imagePrompt", ""),
                     scene_id=scene_id,
+                    duration_sec=scene_data.get("duration"),
                 )
                 anim_images[0]["image"] = image_b64
 

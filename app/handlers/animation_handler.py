@@ -42,6 +42,7 @@ class AnimationHandler:
                 workflow, images = animation.build(
                     scene_prompt=scene_prompt,
                     scene_id=scene_id,
+                    duration_sec=scene_data.get("duration"),
                 )
                 images[0]["image"] = image_b64
 

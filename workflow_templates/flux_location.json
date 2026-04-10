@@ -25,19 +25,19 @@
     "_meta": { "title": "Negative Prompt" }
   },
   "35": {
-    "inputs": { "guidance": 3.5, "conditioning": ["6", 0] },
+    "inputs": { "guidance": 3.25, "conditioning": ["6", 0] },
     "class_type": "FluxGuidance",
     "_meta": { "title": "FluxGuidance" }
   },
   "27": {
-    "inputs": { "width": 1024, "height": 768, "batch_size": 1 },
+    "inputs": { "width": 1024, "height": 576, "batch_size": 1 },
     "class_type": "EmptySD3LatentImage",
     "_meta": { "title": "Latent Image (paysage 4:3)" }
   },
   "31": {
     "inputs": {
       "seed": 0,
-      "steps": 25,
+      "steps": 28,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "beta",

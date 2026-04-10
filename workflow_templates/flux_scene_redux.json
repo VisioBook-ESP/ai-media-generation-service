@@ -36,11 +36,11 @@
     "class_type": "CLIPTextEncode"
   },
   "10": {
-    "inputs": { "conditioning": ["8", 0], "style_model": ["5", 0], "clip_vision_output": ["7", 0], "strength": 0.35, "strength_type": "multiply" },
+    "inputs": { "conditioning": ["8", 0], "style_model": ["5", 0], "clip_vision_output": ["7", 0], "strength": 0.3, "strength_type": "multiply" },
     "class_type": "StyleModelApply"
   },
   "11": {
-    "inputs": { "guidance": 6.0, "conditioning": ["10", 0] },
+    "inputs": { "guidance": 5.0, "conditioning": ["10", 0] },
     "class_type": "FluxGuidance"
   },
   "12": {
@@ -49,7 +49,7 @@
   },
   "13": {
     "inputs": {
-      "seed": 0, "steps": 28, "cfg": 1,
+      "seed": 0, "steps": 30, "cfg": 1,
       "sampler_name": "euler", "scheduler": "beta", "denoise": 1,
       "model": ["1", 0], "positive": ["11", 0], "negative": ["9", 0], "latent_image": ["12", 0]
     },

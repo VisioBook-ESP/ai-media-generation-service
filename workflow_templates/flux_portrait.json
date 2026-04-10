@@ -25,7 +25,7 @@
     "_meta": { "title": "Negative Prompt" }
   },
   "35": {
-    "inputs": { "guidance": 3.5, "conditioning": ["6", 0] },
+    "inputs": { "guidance": 4.25, "conditioning": ["6", 0] },
     "class_type": "FluxGuidance",
     "_meta": { "title": "FluxGuidance" }
   },
@@ -37,7 +37,7 @@
   "31": {
     "inputs": {
       "seed": 0,
-      "steps": 25,
+      "steps": 30,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "beta",

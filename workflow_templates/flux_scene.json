@@ -20,7 +20,7 @@
     "class_type": "CLIPTextEncode"
   },
   "35": {
-    "inputs": { "guidance": 3.5, "conditioning": ["6", 0] },
+    "inputs": { "guidance": 4.0, "conditioning": ["6", 0] },
     "class_type": "FluxGuidance"
   },
   "27": {
@@ -29,7 +29,7 @@
   },
   "31": {
     "inputs": {
-      "seed": 0, "steps": 25, "cfg": 1,
+      "seed": 0, "steps": 28, "cfg": 1,
       "sampler_name": "euler", "scheduler": "beta", "denoise": 1,
       "model": ["1", 0], "positive": ["35", 0], "negative": ["33", 0], "latent_image": ["27", 0]
     },

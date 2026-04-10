@@ -20,7 +20,7 @@
   },
   "5": {
     "inputs": {
-      "text": "worst quality, low quality, blurry, distorted, ugly, deformed, camera movement, camera zoom, camera pan, camera shake, morphing, warping, face distortion, flickering, jitter",
+      "text": "worst quality, low quality, blurry, distorted, ugly, deformed, aggressive camera movement, camera zoom, camera pan, camera shake, morphing, warping, face distortion, flickering, jitter, identity drift, inconsistent face, inconsistent background, sudden pose changes",
       "clip": ["2", 0]
     },
     "class_type": "CLIPTextEncode"
@@ -38,15 +38,15 @@
       "model": ["1", 0],
       "positive": ["6", 0],
       "negative": ["6", 1],
-      "cfg": 2.5
+      "cfg": 3.0
     },
     "class_type": "CFGGuider"
   },
   "8": {
     "inputs": {
-      "steps": 25,
-      "max_shift": 1.8,
-      "base_shift": 0.95,
+      "steps": 30,
+      "max_shift": 1.3,
+      "base_shift": 0.8,
       "stretch": true,
       "terminal": 0.1
     },
@@ -66,14 +66,14 @@
       "vae": ["1", 2],
       "width": 1024,
       "height": 576,
-      "num_frames": 41,
+      "num_frames": 121,
       "guider": ["7", 0],
       "sampler": ["9", 0],
       "sigmas": ["8", 0],
       "noise": ["10", 0],
       "optional_cond_images": ["3", 0],
       "optional_cond_indices": "0",
-      "strength": 0.75,
+      "strength": 0.55,
       "crop": "center",
       "crf": 18,
       "blur": 0

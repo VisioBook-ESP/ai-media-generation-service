@@ -42,14 +42,14 @@
       "eva_clip": ["5", 0],
       "face_analysis": ["6", 0],
       "image": ["7", 0],
-      "weight": 0.8,
+      "weight": 0.74,
       "start_at": 0.0,
-      "end_at": 0.85
+      "end_at": 0.78
     },
     "class_type": "ApplyPulidFlux"
   },
   "11": {
-    "inputs": { "guidance": 3.5, "conditioning": ["8", 0] },
+    "inputs": { "guidance": 4.6, "conditioning": ["8", 0] },
     "class_type": "FluxGuidance"
   },
   "12": {
@@ -58,7 +58,7 @@
   },
   "13": {
     "inputs": {
-      "seed": 0, "steps": 25, "cfg": 1,
+      "seed": 0, "steps": 30, "cfg": 1,
       "sampler_name": "euler", "scheduler": "beta", "denoise": 1,
       "model": ["10", 0], "positive": ["11", 0], "negative": ["9", 0], "latent_image": ["12", 0]
     },
