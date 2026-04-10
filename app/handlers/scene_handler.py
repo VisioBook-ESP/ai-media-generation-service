@@ -2,6 +2,7 @@ import base64
 import logging
 
 from app.workflows import scene
+from app import storage_paths
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class SceneHandler:
         self._settings = settings
 
     async def handle(self, data: dict) -> None:
+        user_id = data["userId"]
         project_id = data["projectId"]
         execution_id = data.get("executionId")
         book_style = data["bookStyle"]
@@ -42,18 +44,19 @@ class SceneHandler:
                     character_ref_url=char_ref_url,
                     location_ref_url=loc_ref_url,
                     load_image_b64=self._load_image_b64,
+                    scene_id=scene_id,
                 )
 
                 image_bytes = await self._comfyui.run_workflow(workflow, images=images)
 
-                storage_path = f"projects/{project_id}/scenes/{scene_id}/image.png"
-                upload_url = await self._storage.get_upload_url(storage_path, "image/png")
+                path = storage_paths.scene_image(user_id, project_id, scene_id)
+                upload_url = await self._storage.get_upload_url(path, "image/png")
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
 
                 await self._publisher.publish("visiobook.ai.media.image.completed", {
                     "executionId": execution_id,
                     "sceneId": scene_id,
-                    "mediaUrl": storage_path,
+                    "mediaUrl": path,
                 })
                 logger.info("Scene image completed", extra={"scene_id": scene_id, "mode": mode})
             except Exception as exc:

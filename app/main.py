@@ -3,14 +3,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.dev import router as dev_router, start_event_listener
 from app.api.health import router as health_router
 from app.clients.comfyui import ComfyUIClient
 from app.clients.local_storage import LocalStorageClient
 from app.clients.s3_storage import S3StorageClient
 from app.config import Settings
-from app.handlers.animation_handler import AnimationHandler
-from app.handlers.reference_handler import ReferenceHandler
-from app.handlers.scene_handler import SceneHandler
+from app.handlers.pipeline_handler import PipelineHandler
 from app.nats.consumer import NATSConsumer
 from app.nats.publisher import NATSPublisher
 
@@ -44,17 +43,18 @@ async def lifespan(app: FastAPI):
     storage = _build_storage(settings)
     comfyui = ComfyUIClient(settings.COMFYUI_URL)
 
-    ref_handler = ReferenceHandler(comfyui, publisher, storage, settings)
-    scene_handler = SceneHandler(comfyui, publisher, storage, settings)
-    animation_handler = AnimationHandler(comfyui, publisher, storage, settings)
+    pipeline_handler = PipelineHandler(comfyui, publisher, storage, settings)
 
-    consumer = NATSConsumer(settings, ref_handler, scene_handler, animation_handler)
+    consumer = NATSConsumer(settings, pipeline_handler)
     await consumer.start()
 
     app.state.settings = settings
     app.state.publisher = publisher
     app.state.nats_consumer = consumer
     app.state.comfyui = comfyui
+
+    # Start dev event listener
+    await start_event_listener(settings.NATS_URL, settings.NATS_STREAM)
 
     logger.info("Service ready on port %s", settings.PORT)
     yield
@@ -71,3 +71,4 @@ app = FastAPI(
 )
 
 app.include_router(health_router)
+app.include_router(dev_router)

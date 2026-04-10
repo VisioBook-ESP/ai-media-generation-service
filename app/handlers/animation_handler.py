@@ -2,6 +2,7 @@ import base64
 import logging
 
 from app.workflows import animation
+from app import storage_paths
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class AnimationHandler:
         self._settings = settings
 
     async def handle(self, data: dict) -> None:
+        user_id = data["userId"]
         project_id = data["projectId"]
         execution_id = data.get("executionId")
         scenes = data.get("scenes", [])
@@ -39,6 +41,7 @@ class AnimationHandler:
 
                 workflow, images = animation.build(
                     scene_prompt=scene_prompt,
+                    scene_id=scene_id,
                 )
                 images[0]["image"] = image_b64
 
@@ -46,14 +49,14 @@ class AnimationHandler:
                     workflow, images=images, output_type="video"
                 )
 
-                storage_path = f"projects/{project_id}/scenes/{scene_id}/animation.webp"
-                upload_url = await self._storage.get_upload_url(storage_path, "image/webp")
+                path = storage_paths.animated_scene(user_id, project_id, scene_id)
+                upload_url = await self._storage.get_upload_url(path, "image/webp")
                 await self._storage.upload_file(upload_url, video_bytes, "image/webp")
 
                 await self._publisher.publish("visiobook.ai.media.animation.completed", {
                     "executionId": execution_id,
                     "sceneId": scene_id,
-                    "mediaUrl": storage_path,
+                    "mediaUrl": path,
                 })
                 logger.info("Scene animation completed", extra={"scene_id": scene_id})
             except Exception as exc:

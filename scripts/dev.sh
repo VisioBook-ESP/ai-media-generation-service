@@ -35,7 +35,7 @@ sleep 2
 
 echo ""
 echo "Tout est demarré"
-echo "  Dev UI   : http://localhost:8087/dev"
+echo "  Dev UI   : http://localhost:8087/dev/"
 echo "  ComfyUI  : $(.venv/bin/python -c "from app.config import Settings; print(Settings().COMFYUI_URL)" 2>/dev/null || echo '(voir .env)')"
 echo ""
 echo "Ctrl+C pour tout arrêter"

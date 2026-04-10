@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import random
 from pathlib import Path
@@ -20,3 +21,9 @@ def load_template(name: str, required_nodes: set[str]) -> dict:
 
 def random_seed() -> int:
     return random.randint(0, 2**32 - 1)
+
+
+def deterministic_seed(*keys: str) -> int:
+    """Derive a reproducible seed from one or more string keys."""
+    raw = ":".join(keys)
+    return int(hashlib.sha256(raw.encode()).hexdigest()[:8], 16)

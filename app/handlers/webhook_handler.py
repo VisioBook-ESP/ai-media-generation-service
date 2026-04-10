@@ -1,6 +1,8 @@
 import base64
 import logging
 
+from app import storage_paths
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,10 +37,11 @@ class WebhookHandler:
             logger.debug("Ignoring webhook status", extra={"status": status})
 
     async def _handle_character_reference(self, metadata: dict, output: dict) -> None:
-        character_id = metadata["character_id"]
+        user_id = metadata["user_id"]
         project_id = metadata["project_id"]
-        storage_path = f"projects/{project_id}/characters/{character_id}/reference.png"
-        image_url = await self._upload_image(output, storage_path)
+        character_id = metadata["character_id"]
+        path = storage_paths.character_ref(user_id, project_id, character_id)
+        image_url = await self._upload_image(output, path)
         await self._publisher.publish("visiobook.ai.reference.completed", {
             "projectId": project_id,
             "characterId": character_id,
@@ -47,10 +50,11 @@ class WebhookHandler:
         logger.info("Character reference completed", extra={"character_id": character_id})
 
     async def _handle_location_reference(self, metadata: dict, output: dict) -> None:
-        location_id = metadata["location_id"]
+        user_id = metadata["user_id"]
         project_id = metadata["project_id"]
-        storage_path = f"projects/{project_id}/locations/{location_id}/reference.png"
-        image_url = await self._upload_image(output, storage_path)
+        location_id = metadata["location_id"]
+        path = storage_paths.location_ref(user_id, project_id, location_id)
+        image_url = await self._upload_image(output, path)
         await self._publisher.publish("visiobook.ai.reference.completed", {
             "projectId": project_id,
             "locationId": location_id,
@@ -59,19 +63,20 @@ class WebhookHandler:
         logger.info("Location reference completed", extra={"location_id": location_id})
 
     async def _handle_scene_image(self, metadata: dict, output: dict) -> None:
-        scene_id = metadata["scene_id"]
+        user_id = metadata["user_id"]
         project_id = metadata["project_id"]
+        scene_id = metadata["scene_id"]
         execution_id = metadata.get("execution_id")
 
-        storage_path = f"projects/{project_id}/scenes/{scene_id}/image.png"
+        path = storage_paths.scene_image(user_id, project_id, scene_id)
         raw_bytes = await self._extract_image_bytes(output)
-        upload_url = await self._storage.get_upload_url(storage_path, "image/png")
+        upload_url = await self._storage.get_upload_url(path, "image/png")
         await self._storage.upload_file(upload_url, raw_bytes, "image/png")
 
         await self._publisher.publish("visiobook.ai.media.image.completed", {
             "executionId": execution_id,
             "sceneId": scene_id,
-            "mediaUrl": storage_path,
+            "mediaUrl": path,
         })
         logger.info("Scene image completed", extra={"scene_id": scene_id})
 
@@ -94,11 +99,11 @@ class WebhookHandler:
             await self._publisher.publish("visiobook.ai.media.failed", payload)
         logger.error("RunPod job failed", extra={"metadata": metadata, "error": str(error)})
 
-    async def _upload_image(self, output: dict, storage_path: str) -> str:
+    async def _upload_image(self, output: dict, path: str) -> str:
         raw_bytes = await self._extract_image_bytes(output)
-        upload_url = await self._storage.get_upload_url(storage_path, "image/png")
+        upload_url = await self._storage.get_upload_url(path, "image/png")
         await self._storage.upload_file(upload_url, raw_bytes, "image/png")
-        return storage_path
+        return path
 
     async def _extract_image_bytes(self, output: dict) -> bytes:
         images = output.get("images", [])

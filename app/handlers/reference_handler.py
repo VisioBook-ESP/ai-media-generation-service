@@ -1,5 +1,6 @@
 import logging
 from app.workflows import flux_portrait, flux_location
+from app import storage_paths
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class ReferenceHandler:
         self._settings = settings
 
     async def handle(self, data: dict) -> None:
+        user_id = data["userId"]
         project_id = data["projectId"]
         execution_id = data.get("executionId")
         book_style = data["bookStyle"]
@@ -32,17 +34,18 @@ class ReferenceHandler:
                     physical_description=char["physicalDescription"],
                     visual_style=book_style["visualStyle"],
                     negative_prompt=book_style.get("negativePrompt", ""),
+                    character_id=character_id,
                 )
                 image_bytes = await self._comfyui.run_workflow(workflow)
 
-                storage_path = f"projects/{project_id}/characters/{character_id}/reference.png"
-                upload_url = await self._storage.get_upload_url(storage_path, "image/png")
+                path = storage_paths.character_ref(user_id, project_id, character_id)
+                upload_url = await self._storage.get_upload_url(path, "image/png")
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
 
                 await self._publisher.publish("visiobook.ai.reference.completed", {
                     "projectId": project_id,
                     "characterId": character_id,
-                    "referenceImageUrl": storage_path,
+                    "referenceImageUrl": path,
                 })
                 logger.info("Character reference completed", extra={"character_id": character_id})
             except Exception as exc:
@@ -61,17 +64,18 @@ class ReferenceHandler:
                     location_description=loc["description"],
                     visual_style=book_style["visualStyle"],
                     negative_prompt=book_style.get("negativePrompt", ""),
+                    location_id=location_id,
                 )
                 image_bytes = await self._comfyui.run_workflow(workflow)
 
-                storage_path = f"projects/{project_id}/locations/{location_id}/reference.png"
-                upload_url = await self._storage.get_upload_url(storage_path, "image/png")
+                path = storage_paths.location_ref(user_id, project_id, location_id)
+                upload_url = await self._storage.get_upload_url(path, "image/png")
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
 
                 await self._publisher.publish("visiobook.ai.reference.completed", {
                     "projectId": project_id,
                     "locationId": location_id,
-                    "referenceImageUrl": storage_path,
+                    "referenceImageUrl": path,
                 })
                 logger.info("Location reference completed", extra={"location_id": location_id})
             except Exception as exc:
