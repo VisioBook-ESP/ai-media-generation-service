@@ -1,6 +1,6 @@
 # AI Media Generation Service
 
-Service de generation de medias pour Visiobook. Orchestre des workflows ComfyUI (FLUX, PuLID, Redux, LTX-Video) via NATS JetStream pour produire des illustrations et animations de livres animes.
+Service de generation de medias pour Visiobook. Orchestre des workflows ComfyUI (FLUX, Redux, LTX-Video 2.3) via NATS JetStream pour produire des illustrations et animations de livres animes.
 
 ## Architecture
 
@@ -16,10 +16,10 @@ NATS JetStream                    ComfyUI (RunPod GPU Pod)
 
 Le service ecoute un unique sujet NATS (`visiobook.media.generate`) et execute un pipeline sequentiel :
 
-1. **References personnages** - Portraits via FLUX + prompts optimises
-2. **References lieux** - Environnements via FLUX
-3. **Scenes** - Illustrations avec PuLID (visage) + Redux (style/lieu)
-4. **Animations** - Image-to-video via LTX-Video 13B
+1. **References personnages** - Portraits plein pied via FLUX.1-dev (advanced sampler)
+2. **References lieux** - Environnements via FLUX.1-dev
+3. **Scenes** - Illustrations avec Redux (consistance visuelle personnage + lieu)
+4. **Animations** - Image-to-video via LTX-Video 2.3 22B (two-pass + Gemma 3 prompt enhancement)
 
 ## Stack technique
 
@@ -27,11 +27,10 @@ Le service ecoute un unique sujet NATS (`visiobook.media.generate`) et execute u
 |---|---|
 | API | FastAPI + Uvicorn |
 | Messaging | NATS JetStream |
-| Inference GPU | ComfyUI v0.18.5 |
-| Image generation | FLUX.1-dev |
-| Face consistency | PuLID-Flux v0.9.1 |
-| Style transfer | FLUX Redux |
-| Animation | LTX-Video 13B (0.9.8-dev) |
+| Inference GPU | ComfyUI latest |
+| Image generation | FLUX.1-dev (ModelSamplingFlux + SamplerCustomAdvanced) |
+| Style consistency | FLUX Redux (StyleModelApply) |
+| Animation | LTX-Video 2.3 22B fp8 (two-pass + Gemma 3 12B) |
 | Storage | S3 / MinIO |
 | Infrastructure | Docker + RunPod / Kubernetes |
 
@@ -39,8 +38,8 @@ Le service ecoute un unique sujet NATS (`visiobook.media.generate`) et execute u
 
 - Python 3.12+
 - NATS Server avec JetStream active
-- ComfyUI avec les custom nodes : `ComfyUI-PuLID-Flux`, `ComfyUI-LTXVideo`
-- S3 / MinIO pour le stockage
+- ComfyUI latest avec le custom node : `ComfyUI-LTXVideo`
+- S3 / MinIO pour le stockage (production) ou stockage local (dev)
 - GPU 24GB+ VRAM (RTX 4090, A100, L40S, ...)
 
 ## Installation
@@ -71,15 +70,18 @@ cp .env.example .env
 | `S3_ACCESS_KEY` | `minioadmin` | Access key S3 |
 | `S3_SECRET_KEY` | `minioadmin` | Secret key S3 |
 | `S3_REGION` | `us-east-1` | Region S3 |
+| `HF_TOKEN` | _(vide)_ | Token HuggingFace (utilise par `setup_models.sh`) |
 
 ## Lancement
 
 ### Developpement
 
 ```bash
-# Demarrer NATS + le service avec hot-reload
+# Demarrer NATS + le service avec hot-reload + dev UI
 ./scripts/dev.sh
 ```
+
+La dev UI est accessible sur `http://localhost:8087/dev/` — elle permet d'envoyer des messages NATS et de visualiser les evenements en temps reel.
 
 ### Production (Kubernetes)
 
@@ -138,13 +140,36 @@ Publier sur le sujet NATS `visiobook.media.generate` :
 
 ### Champs cles
 
-- `characters[].portraitPrompt` : prompt optimise pour FLUX, utilise pour generer le portrait de reference
 - `characters[].name` : identifiant du personnage, reference par `scenes[].charactersPresent`
-- `locations[].descriptionPrompt` : prompt optimise pour FLUX, genere l'image de reference du lieu
+- `characters[].portraitPrompt` : prompt FLUX pour generer le portrait de reference (plein pied)
 - `locations[].locationId` : identifiant du lieu, reference par `scenes[].locationId`
-- `scenes[].imagePrompt` : prompt optimise pour FLUX, genere l'illustration de la scene
+- `locations[].descriptionPrompt` : prompt FLUX pour generer l'image de reference du lieu
+- `scenes[].imagePrompt` : prompt FLUX pour generer l'illustration de la scene
 - `scenes[].order` : ordre sequentiel des scenes (0, 1, 2, ...)
-- `scenes[].charactersPresent` : liste de noms de personnages presents (le premier est utilise pour PuLID)
+- `scenes[].charactersPresent` : liste de noms de personnages presents (le premier est utilise pour Redux)
+- `scenes[].duration` : duree de l'animation en secondes (2-6s, defaut 4s)
+
+## Modes de generation de scene
+
+Le pipeline choisit automatiquement le workflow ComfyUI selon les references disponibles :
+
+| Mode | Personnage ref | Lieu ref | Workflow |
+|---|---|---|---|
+| `text` | - | - | `flux_scene.json` |
+| `location` | - | oui | `flux_scene_redux.json` (strength 0.5) |
+| `character` | oui | - | `flux_scene_redux.json` (strength 0.35) |
+| `character_location` | oui | oui | `flux_scene_dual_redux.json` (char 0.25 + loc 0.5) |
+
+**Redux** (StyleModelApply) assure la consistance visuelle en transferant le style depuis les images de reference.
+
+## Animation (LTX-Video 2.3)
+
+Chaque scene illustree est animee via un workflow deux passes :
+
+1. **Low-res** : generation initiale avec `euler_ancestral_cfg_pp` (10 steps)
+2. **High-res** : latent upscale x2 + refinement avec `euler_cfg_pp` (7 steps)
+
+Le prompt est enrichi automatiquement par **Gemma 3 12B** via `TextGenerateLTX2Prompt`. Parametres : 25 fps, duree configurable (2-6s).
 
 ## Evenements publies (NATS)
 
@@ -247,20 +272,6 @@ visiobook.ai.media.failed | visiobook.ai.reference.failed
         animation.webp
 ```
 
-## Modes de generation de scene
-
-Le pipeline choisit automatiquement le workflow ComfyUI selon les references disponibles :
-
-| Mode | Personnage ref | Lieu ref | Workflow |
-|---|---|---|---|
-| `text` | - | - | `flux_scene.json` |
-| `location` | - | oui | `flux_scene_redux.json` |
-| `character` | oui | - | `flux_scene_pulid_redux.json` |
-| `character_location` | oui | oui | `flux_scene_pulid_redux.json` |
-
-- **PuLID** : transfert d'identite faciale depuis la reference personnage
-- **Redux** : transfert de style visuel (personnage strength=0.25, lieu strength=0.5)
-
 ## Health check
 
 ```
@@ -278,27 +289,50 @@ GET /health
 
 ## Setup GPU (RunPod)
 
-### Telecharger les modeles
+### 1. Telecharger les modeles
 
 ```bash
-export HF_TOKEN=<votre token huggingface>
-./scripts/setup_models.sh
+HF_TOKEN=hf_xxx bash scripts/setup_models.sh
 ```
 
-Modeles requis (~80 GB) :
-- FLUX.1-dev (fp16)
-- T5-XXL + CLIP-L (encodeurs texte)
-- FLUX VAE, Redux, PuLID v0.9.1, SigCLIP Vision
-- EVA-CLIP + InsightFace (antelopev2)
-- LTX-Video 13B
+Le script telecharge tous les modeles requis (~80 GB) sur le network volume `/runpod-volume/models/` :
 
-### Build de l'image Docker ComfyUI
+| Modele | Taille | Dossier |
+|---|---|---|
+| FLUX.1-dev fp16 | ~23 GB | `diffusion_models/` |
+| T5-XXL fp16 | ~9 GB | `text_encoders/` |
+| CLIP-L | ~250 MB | `text_encoders/` |
+| FLUX VAE | ~160 MB | `vae/` |
+| FLUX Redux | ~300 MB | `style_models/` |
+| SigCLIP Vision 384 | ~800 MB | `clip_vision/` |
+| LTX-Video 2.3 22B fp8 | ~22 GB | `checkpoints/` |
+| LTX-Video 2.3 distilled LoRA | ~500 MB | `loras/` |
+| LTX-Video 2.3 spatial upscaler x2 | ~200 MB | `latent_upscale_models/` |
+| Gemma 3 12B fp4 (text encoder LTX) | ~6 GB | `text_encoders/` |
+| Gemma 3 abliterated LoRA | ~600 MB | `loras/` |
+
+### 2. Build de l'image Docker ComfyUI
 
 ```bash
 ./scripts/build_docker.sh
 ```
 
-Construit une image basee sur `worker-comfyui` avec ComfyUI v0.18.5, PuLID-Flux, et LTX-Video.
+Construit une image basee sur `worker-comfyui` avec ComfyUI latest, torchaudio, et `ComfyUI-LTXVideo`.
+
+### 3. Deployer le pod
+
+Le fichier `setup_pod.yaml` decrit la configuration du pod RunPod :
+
+```yaml
+image: vattv/visiobook-comfyui:v39
+volume:
+  mount_path: /runpod-volume
+expose_ports:
+  - 8188/http
+gpu: 1x (24GB+ VRAM)
+```
+
+Les modeles sont lus depuis le volume via `extra_model_paths.yaml`.
 
 ## Structure du projet
 
@@ -306,24 +340,36 @@ Construit une image basee sur `worker-comfyui` avec ComfyUI v0.18.5, PuLID-Flux,
 app/
   api/
     health.py            # Health check endpoint
+    dev.py               # Dev UI + NATS event viewer
   clients/
     comfyui.py           # Client HTTP ComfyUI (avec retry)
     s3_storage.py        # Client S3/MinIO
     local_storage.py     # Stockage local (dev)
   handlers/
     pipeline_handler.py  # Orchestrateur principal du pipeline
+    reference_handler.py # Handler references standalone
   nats/
     consumer.py          # Consumer JetStream
     publisher.py         # Publisher JetStream
   workflows/
-    animation.py         # Builder workflow LTX-Video
+    animation.py         # Builder workflow LTX-Video 2.3
     flux_portrait.py     # Builder workflow portrait
     flux_location.py     # Builder workflow lieu
-    scene.py             # Builder workflow scene (4 variantes)
+    scene.py             # Builder workflow scene (4 variantes Redux)
     common.py            # Utilitaires (templates, seeds)
   config.py              # Configuration (pydantic-settings)
   main.py                # Point d'entree FastAPI
   storage_paths.py       # Construction des chemins S3
 workflow_templates/      # Fichiers JSON ComfyUI (API format)
-scripts/                 # Scripts de setup et deploiement
+  flux_scene.json        # Scene text-only
+  flux_scene_redux.json  # Scene single Redux (character ou location)
+  flux_scene_dual_redux.json  # Scene dual Redux (character + location)
+  flux_portrait.json     # Portrait personnage
+  flux_location.json     # Reference lieu
+  ltxv_23_i2v.json       # Animation LTX-Video 2.3 (two-pass)
+scripts/
+  dev.sh                 # Lancement dev (NATS + hot-reload)
+  start.sh               # Lancement production
+  setup_models.sh        # Telechargement modeles sur RunPod volume
+  build_docker.sh        # Build image Docker ComfyUI
 ```
