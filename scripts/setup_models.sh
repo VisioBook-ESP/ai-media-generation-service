@@ -28,10 +28,9 @@ mkdir -p "$MODELS/text_encoders"
 mkdir -p "$MODELS/vae"
 mkdir -p "$MODELS/checkpoints"
 mkdir -p "$MODELS/clip_vision"
-mkdir -p "$MODELS/ipadapter"
+mkdir -p "$MODELS/style_models"
 mkdir -p "$MODELS/loras"
-mkdir -p "$MODELS/pulid"
-mkdir -p "$MODELS/insightface/models"
+mkdir -p "$MODELS/latent_upscale_models"
 
 echo "Structure créée dans $MODELS"
 echo ""
@@ -59,9 +58,8 @@ dl() {
 }
 
 # ── 1. FLUX.1-dev — modèle principal images ───────────────────────────────────
-# Nécessite d'accepter la licence sur : https://huggingface.co/black-forest-labs/FLUX.1-dev
 
-echo "=== [1/5] Flux.1-dev fp16 (~23 Go) ==="
+echo "=== [1/6] Flux.1-dev fp16 (~23 Go) ==="
 
 dl \
   "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors" \
@@ -71,7 +69,7 @@ dl \
 # ── 2. Text encoders Flux ────────────────────────────────────────────────────
 
 echo ""
-echo "=== [2/5] Text encoders Flux ==="
+echo "=== [2/6] Text encoders Flux ==="
 
 dl \
   "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
@@ -84,20 +82,17 @@ dl \
 # ── 3. VAE Flux ──────────────────────────────────────────────────────────────
 
 echo ""
-echo "=== [3/5] VAE Flux ==="
+echo "=== [3/6] VAE Flux ==="
 
 dl \
   "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors" \
   "$MODELS/vae/ae.safetensors" \
   "$HF_TOKEN"
 
-# ── 4. Flux Redux (cohérence visuelle personnages entre scènes) ───────────────
-# Nativement supporté par ComfyUI — pas de custom node requis
+# ── 4. Flux Redux + SigCLIP Vision ───────────────────────────────────────────
 
 echo ""
-echo "=== [4/5] Flux Redux + SigCLIP Vision ==="
-
-mkdir -p "$MODELS/style_models"
+echo "=== [4/6] Flux Redux + SigCLIP Vision ==="
 
 dl \
   "https://huggingface.co/black-forest-labs/FLUX.1-Redux-dev/resolve/main/flux1-redux-dev.safetensors" \
@@ -108,52 +103,35 @@ dl \
   "https://huggingface.co/Comfy-Org/sigclip_vision_384/resolve/main/sigclip_vision_patch14_384.safetensors" \
   "$MODELS/clip_vision/sigclip_vision_patch14_384.safetensors"
 
-# ── 5. PuLID Flux — cohérence identité personnages ───────────────────────────
-# PuLID préserve l'identité faciale d'un personnage dans différentes scènes
-# Custom node requis dans le Docker : cubiq/PuLID_ComfyUI
+# ── 5. LTX-Video 2.3 — checkpoint + LoRAs + Upscaler ─────────────────────────
 
 echo ""
-echo "=== [5/7] PuLID Flux v0.9.1 (~1.1 Go) ==="
+echo "=== [5/6] LTX-Video 2.3 22B (~22 Go) + LoRAs + Upscaler ==="
 
 dl \
-  "https://huggingface.co/guozinan/PuLID/resolve/main/pulid_flux_v0.9.1.safetensors" \
-  "$MODELS/pulid/pulid_flux_v0.9.1.safetensors"
-
-echo ""
-echo "=== [6/7] EVA-CLIP (requis par PuLID, ~856 Mo) ==="
+  "https://huggingface.co/Lightricks/LTX-2.3-fp8/resolve/main/ltx-2.3-22b-dev-fp8.safetensors" \
+  "$MODELS/checkpoints/ltx-2.3-22b-dev-fp8.safetensors"
 
 dl \
-  "https://huggingface.co/QuanSun/EVA-CLIP/resolve/main/EVA02_CLIP_L_336_psz14_s6B.pt" \
-  "$MODELS/text_encoders/EVA02_CLIP_L_336_psz14_s6B.pt"
-
-echo ""
-echo "=== [6b/7] InsightFace antelopev2 (requis par PuLID, ~430 Mo) ==="
-
-ANTELOPE_ZIP="$MODELS/insightface/models/antelopev2.zip"
-ANTELOPE_DIR="$MODELS/insightface/models/antelopev2"
-
-if [[ -d "$ANTELOPE_DIR" ]] && [[ "$(ls -A "$ANTELOPE_DIR" 2>/dev/null)" ]]; then
-  echo "  [SKIP] antelopev2 — déjà présent"
-else
-  echo "  [DL]   antelopev2.zip"
-  wget -q --show-progress \
-    "https://github.com/deepinsight/insightface/releases/download/v0.7/antelopev2.zip" \
-    -O "$ANTELOPE_ZIP"
-  unzip -q "$ANTELOPE_ZIP" -d "$MODELS/insightface/models/"
-  rm "$ANTELOPE_ZIP"
-  echo "  [OK]   antelopev2 — $(du -sh "$ANTELOPE_DIR" | cut -f1)"
-fi
-
-# ── 7. LTX-Video 13B — animation image-to-video ─────────────────────────────
-# Modèle Lightricks LTX-Video 13B 0.9.8 dev (~28.5 Go)
-# Custom node requis : https://github.com/Lightricks/ComfyUI-LTXVideo
-
-echo ""
-echo "=== [7/7] LTX-Video 13B 0.9.8 dev (~28.5 Go) ==="
+  "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384.safetensors" \
+  "$MODELS/loras/ltx-2.3-22b-distilled-lora-384.safetensors"
 
 dl \
-  "https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltxv-13b-0.9.8-dev.safetensors" \
-  "$MODELS/checkpoints/ltxv-13b-0.9.8-dev.safetensors"
+  "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.1.safetensors" \
+  "$MODELS/latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+
+# ── 6. Gemma 3 12B — text encoder pour LTX-Video 2.3 ─────────────────────────
+
+echo ""
+echo "=== [6/6] Gemma 3 12B (text encoder + abliterated LoRA) ==="
+
+dl \
+  "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors" \
+  "$MODELS/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors"
+
+dl \
+  "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors" \
+  "$MODELS/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors"
 
 # ── Résumé ────────────────────────────────────────────────────────────────────
 

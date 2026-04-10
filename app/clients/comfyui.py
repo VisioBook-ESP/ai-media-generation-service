@@ -105,7 +105,11 @@ class ComfyUIClient:
         self, client: httpx.AsyncClient, outputs: dict, output_type: str = "image"
     ) -> bytes:
         for node_id, node_output in outputs.items():
-            candidates = node_output.get("gifs", []) or node_output.get("images", [])
+            candidates = (
+                node_output.get("videos", [])
+                or node_output.get("gifs", [])
+                or node_output.get("images", [])
+            )
             if candidates:
                 item = candidates[0]
                 filename = item["filename"]

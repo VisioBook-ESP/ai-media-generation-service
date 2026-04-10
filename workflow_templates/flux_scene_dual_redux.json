@@ -25,31 +25,47 @@
   },
 
   "6": {
-    "inputs": { "image": "reference.png", "upload": "image" },
+    "inputs": { "image": "character.png", "upload": "image" },
     "class_type": "LoadImage"
   },
   "7": {
-    "inputs": { "crop": "center", "clip_vision": ["5", 0], "image": ["6", 0] },
-    "class_type": "CLIPVisionEncode"
+    "inputs": { "image": "location.png", "upload": "image" },
+    "class_type": "LoadImage"
   },
 
   "8": {
+    "inputs": { "crop": "center", "clip_vision": ["5", 0], "image": ["6", 0] },
+    "class_type": "CLIPVisionEncode"
+  },
+  "9": {
+    "inputs": { "crop": "center", "clip_vision": ["5", 0], "image": ["7", 0] },
+    "class_type": "CLIPVisionEncode"
+  },
+
+  "10": {
     "inputs": { "text": "", "clip": ["2", 0] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Positive Prompt" }
   },
-  "9": {
+  "11": {
     "inputs": { "text": "", "clip": ["2", 0] },
     "class_type": "CLIPTextEncode",
     "_meta": { "title": "Negative Prompt" }
   },
-  "10": {
-    "inputs": { "guidance": 3.5, "conditioning": ["8", 0] },
+
+  "12": {
+    "inputs": { "guidance": 3.5, "conditioning": ["10", 0] },
     "class_type": "FluxGuidance"
   },
-  "11": {
-    "inputs": { "strength": 0.5, "strength_type": "multiply", "conditioning": ["10", 0], "style_model": ["30", 0], "clip_vision_output": ["7", 0] },
-    "class_type": "StyleModelApply"
+  "13": {
+    "inputs": { "strength": 0.25, "strength_type": "multiply", "conditioning": ["12", 0], "style_model": ["30", 0], "clip_vision_output": ["8", 0] },
+    "class_type": "StyleModelApply",
+    "_meta": { "title": "Redux Character" }
+  },
+  "14": {
+    "inputs": { "strength": 0.5, "strength_type": "multiply", "conditioning": ["13", 0], "style_model": ["30", 0], "clip_vision_output": ["9", 0] },
+    "class_type": "StyleModelApply",
+    "_meta": { "title": "Redux Location" }
   },
 
   "20": {
@@ -65,7 +81,7 @@
     "class_type": "BasicScheduler"
   },
   "23": {
-    "inputs": { "model": ["4", 0], "conditioning": ["11", 0] },
+    "inputs": { "model": ["4", 0], "conditioning": ["14", 0] },
     "class_type": "BasicGuider"
   },
   "24": {

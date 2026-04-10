@@ -31,9 +31,8 @@ class ReferenceHandler:
             character_id = char["characterId"]
             try:
                 workflow = flux_portrait.build(
-                    physical_description=char["physicalDescription"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
+                    portrait_prompt=char["portraitPrompt"],
+                    negative_prompt=char.get("portraitNegativePrompt", ""),
                     character_id=character_id,
                 )
                 image_bytes = await self._comfyui.run_workflow(workflow)
@@ -61,9 +60,8 @@ class ReferenceHandler:
             location_id = loc["locationId"]
             try:
                 workflow = flux_location.build(
-                    location_description=loc["description"],
-                    visual_style=book_style["visualStyle"],
-                    negative_prompt=book_style.get("negativePrompt", ""),
+                    location_prompt=loc["descriptionPrompt"],
+                    negative_prompt=loc.get("negativePrompt", ""),
                     location_id=location_id,
                 )
                 image_bytes = await self._comfyui.run_workflow(workflow)

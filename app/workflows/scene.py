@@ -1,9 +1,8 @@
 from app.workflows.common import deterministic_seed, load_template, random_seed
 
-_TEXT_NODES = {"6", "31", "33"}
-_LOCATION_NODES = {"6", "8", "9", "13"}
-_CHARACTER_NODES = {"9", "12", "13", "15", "18"}
-_CHARACTER_LOCATION_NODES = {"9", "10", "12", "13", "15", "18"}
+_TEXT_NODES = {"6", "10"}
+_REDUX_NODES = {"6", "8", "9", "20"}
+_DUAL_REDUX_NODES = {"6", "7", "10", "11", "20"}
 
 _SCENE_BASE_QUALITY = "single illustration frame, cinematic composition, consistent storybook style"
 _SCENE_NEGATIVE = "duplicate character, extra limbs, bad anatomy, cropped subject, cut off hands, cut off feet"
@@ -29,39 +28,41 @@ def _seed(scene_id: str | None) -> int:
 def _build_text(scene_prompt: str, visual_style: str, negative_prompt: str, seed: int) -> tuple[dict, list[dict], str]:
     workflow = load_template("flux_scene.json", _TEXT_NODES)
     workflow["6"]["inputs"]["text"] = _positive(scene_prompt, visual_style)
-    workflow["33"]["inputs"]["text"] = _negative(negative_prompt)
-    workflow["31"]["inputs"]["seed"] = seed
+    workflow["10"]["inputs"]["noise_seed"] = seed
     return workflow, [], "text"
 
 
-def _build_location(
+def _build_redux(
     scene_prompt: str,
     visual_style: str,
     negative_prompt: str,
-    location_b64: str,
+    ref_b64: str,
     seed: int,
+    ref_name: str = "reference.png",
 ) -> tuple[dict, list[dict], str]:
-    workflow = load_template("flux_scene_redux.json", _LOCATION_NODES)
-    workflow["6"]["inputs"]["image"] = "reference.png"
+    """Single Redux reference (location or character)."""
+    workflow = load_template("flux_scene_redux.json", _REDUX_NODES)
+    workflow["6"]["inputs"]["image"] = ref_name
     workflow["8"]["inputs"]["text"] = _positive(scene_prompt, visual_style)
     workflow["9"]["inputs"]["text"] = _negative(negative_prompt)
-    workflow["13"]["inputs"]["seed"] = seed
-    return workflow, [{"name": "reference.png", "image": location_b64}], "location"
+    workflow["20"]["inputs"]["noise_seed"] = seed
+    return workflow, [{"name": ref_name, "image": ref_b64}]
+
+
+def _build_location(
+    scene_prompt: str, visual_style: str, negative_prompt: str, location_b64: str, seed: int,
+) -> tuple[dict, list[dict], str]:
+    workflow, images = _build_redux(scene_prompt, visual_style, negative_prompt, location_b64, seed, "reference.png")
+    workflow["11"]["inputs"]["strength"] = 0.5
+    return workflow, images, "location"
 
 
 def _build_character(
-    scene_prompt: str,
-    visual_style: str,
-    negative_prompt: str,
-    character_b64: str,
-    seed: int,
+    scene_prompt: str, visual_style: str, negative_prompt: str, character_b64: str, seed: int,
 ) -> tuple[dict, list[dict], str]:
-    workflow = load_template("flux_scene_pulid_redux.json", _CHARACTER_NODES)
-    workflow["9"]["inputs"]["image"] = "character.png"
-    workflow["12"]["inputs"]["text"] = _positive(scene_prompt, visual_style)
-    workflow["13"]["inputs"]["text"] = _negative(negative_prompt)
-    workflow["18"]["inputs"]["seed"] = seed
-    return workflow, [{"name": "character.png", "image": character_b64}], "character"
+    workflow, images = _build_redux(scene_prompt, visual_style, negative_prompt, character_b64, seed, "character.png")
+    workflow["11"]["inputs"]["strength"] = 0.35
+    return workflow, images, "character"
 
 
 def _build_character_location(
@@ -72,12 +73,13 @@ def _build_character_location(
     location_b64: str,
     seed: int,
 ) -> tuple[dict, list[dict], str]:
-    workflow = load_template("flux_scene_pulid_redux.json", _CHARACTER_LOCATION_NODES)
-    workflow["9"]["inputs"]["image"] = "character.png"
-    workflow["10"]["inputs"]["image"] = "location.png"
-    workflow["12"]["inputs"]["text"] = _positive(scene_prompt, visual_style)
-    workflow["13"]["inputs"]["text"] = _negative(negative_prompt)
-    workflow["18"]["inputs"]["seed"] = seed
+    """Dual Redux: character (0.25) + location (0.5)."""
+    workflow = load_template("flux_scene_dual_redux.json", _DUAL_REDUX_NODES)
+    workflow["6"]["inputs"]["image"] = "character.png"
+    workflow["7"]["inputs"]["image"] = "location.png"
+    workflow["10"]["inputs"]["text"] = _positive(scene_prompt, visual_style)
+    workflow["11"]["inputs"]["text"] = _negative(negative_prompt)
+    workflow["20"]["inputs"]["noise_seed"] = seed
     images = [
         {"name": "character.png", "image": character_b64},
         {"name": "location.png", "image": location_b64},

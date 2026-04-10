@@ -20,5 +20,8 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str = "minioadmin"
     S3_REGION: str = "us-east-1"
 
+    # HuggingFace (utilisé par setup_models.sh, pas par le service)
+    HF_TOKEN: str = ""
+
     class Config:
         env_file = ".env"

@@ -9,7 +9,5 @@ comfyui:
   checkpoints: checkpoints/
   clip_vision: clip_vision/
   style_models: style_models/
-  ipadapter: ipadapter/
   loras: loras/
-  pulid: pulid/
-  insightface: insightface/
+  latent_upscale_models: latent_upscale_models/
