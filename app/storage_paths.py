@@ -21,4 +21,4 @@ def scene_image(user_id: str, project_id: str, scene_id: str) -> str:
 
 
 def animated_scene(user_id: str, project_id: str, scene_id: str) -> str:
-    return f"{user_id}/{project_id}/animated_scenes/{scene_id}/animation.webp"
+    return f"{user_id}/{project_id}/animated_scenes/{scene_id}/animation.mp4"

@@ -176,8 +176,8 @@ class PipelineHandler:
                 )
 
                 path = storage_paths.animated_scene(user_id, project_id, scene_id)
-                upload_url = await self._storage.get_upload_url(path, "image/webp")
-                await self._storage.upload_file(upload_url, video_bytes, "image/webp")
+                upload_url = await self._storage.get_upload_url(path, "video/mp4")
+                await self._storage.upload_file(upload_url, video_bytes, "video/mp4")
 
                 await self._publisher.publish("visiobook.ai.media.animation.completed", {
                     "executionId": execution_id,

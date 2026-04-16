@@ -1,7 +1,7 @@
 # RunPod Pod Configuration
 # ========================
 
-image: vattv/visiobook-comfyui:v39
+image: vattv/visiobook-comfyui:v44
 
 start_command: bash /runpod-volume/start.sh
 
