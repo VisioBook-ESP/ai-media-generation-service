@@ -191,6 +191,16 @@ jobs:
 
           echo "Deployment restarted successfully"
 
+      - name: Setup kubectl
+        run: |
+          kubectl config set-cluster vps --server=${{ secrets.K8S_SERVER }} --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token=${{ secrets.K8S_TOKEN }}
+          kubectl config set-context ci --cluster=vps --user=ci
+          kubectl config use-context ci
+
+      - name: Deploy
+        run: kubectl get nodes  # test de connexion
+
       - name: Summary
         run: |
           POD_ID="${{ steps.pod.outputs.pod_id }}"
@@ -261,3 +271,5 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
           echo "$RESPONSE" | jq '[.[] | {id, name, desiredStatus, gpu: .gpu.displayName, image}]'
+
+  
