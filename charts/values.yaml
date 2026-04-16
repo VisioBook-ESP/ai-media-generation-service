@@ -1,0 +1,81 @@
+name: ai-media-generation-service
+replicaCount: 1
+image:
+  repository: ghcr.io/visiobook-esp/ai-media-generation-service-dev
+  tag: latest
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0  # l'ancien pod reste vivant tant que le nouveau n'est pas prêt
+    maxSurge: 1        # autorise 1 pod en plus pendant le rollout
+
+revisionHistoryLimit: 3 # nombre de revision garder sur un pod
+progressDeadlineSeconds: 60 # temps max pour que le pod soit opérationnel avant de considérer que le déploiement a échoué
+minReadySeconds: 10 # le pod doit être stable 10s avant d'être considéré Available (évite les faux positifs)
+terminationGracePeriodSeconds: 10 # délai avant SIGKILL (30s par défaut, réduit pour les tests)
+
+existingSecretMinio: ""
+
+service:
+  type: NodePort
+  port: 8087
+  nodePort: 30090
+
+istio:
+  enabled: true
+  injection: true
+
+  virtualService:
+    enabled: true
+    hosts:
+      - "ai-media-generation-service"
+      - "ai-media-generation-service.visiobook.dev"
+    gateways:
+      - mesh
+  destinationRule:
+    enabled: true
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 100
+        http:
+          http1MaxPendingRequests: 100
+          http2MaxRequests: 100
+          maxRequestsPerConnection: 2
+      loadBalancer:
+        simple: ROUND_ROBIN
+      outlierDetection:
+        consecutiveErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+
+  mtls:
+    enabled: true
+    mode: ISTIO_MUTUAL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+existingSecretMinio: ""
+
+podLabels:
+  app: ai-media-generation-service
+  version: "latest"
+  app.kubernetes.io/name: ai-media-generation-service
+  app.kubernetes.io/version: "latest"
+  app.kubernetes.io/component: backend
+
+selectorLabels:
+  app: ai-media-generation-service
+
+resources: {}
+
+env:
+  PORT=8087
+  ENV=production
+  LOG_LEVEL=info
+  NATS_URL=nats://nats.visiobook-namespace.svc.cluster.local:4222
+  NATS_STREAM=visiobook

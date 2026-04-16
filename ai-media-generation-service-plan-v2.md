@@ -15,7 +15,7 @@ Worker stateless en FastAPI qui transforme des événements NATS en jobs GPU Run
 - Assemble vidéo + audio en fichier final (ffmpeg)
 
 **Ce qu'il ne fait PAS :**
-- Analyser le texte (c'est l'ai-analysis-service)
+- Analyser le texte (c'est l'ai-media-generation-service)
 - Matcher les personnages / détecter les doublons (c'est le core-project-service)
 - Stocker l'état des projets, personnages, scènes (c'est le core-project-service)
 - Gérer les fichiers directement (c'est le storage-service / MinIO)
@@ -1222,10 +1222,10 @@ UTILISATEUR scanne la page 1
          │
          ▼
     core-project-service
-    │  Envoie le texte à l'ai-analysis-service
+    │  Envoie le texte à l'ai-media-generation-service
     │
          ▼
-    ai-analysis-service
+    ai-media-generation-service
     │  Analyse le texte
     │  Retourne : scènes, personnages, ambiance, prompts
     │
