@@ -28,6 +28,16 @@ jobs:
     if: inputs.action == 'start'
     runs-on: ubuntu-latest
     steps:
+      - name: Setup kubectl
+        run: |
+          kubectl config set-cluster vps --server=${{ secrets.K8S_SERVER }} --insecure-skip-tls-verify
+          kubectl config set-credentials ci --token=${{ secrets.K8S_TOKEN }}
+          kubectl config set-context ci --cluster=vps --user=ci
+          kubectl config use-context ci
+
+      - name: Deploy
+        run: kubectl get nodes  # test de connexion
+
       - name: Check for existing pod
         id: check
         run: |
@@ -87,7 +97,7 @@ jobs:
                 \"networkVolumeId\": \"${{ env.RUNPOD_VOLUME_ID }}\",
                 \"dataCenterIds\": [\"${{ env.RUNPOD_DATACENTER }}\"],
                 \"ports\": [\"8188/http\", \"22/tcp\"],
-                \"dockerStartCmd\": \"bash /runpod-volume/start.sh\",
+                \"dockerStartCmd\": [\"bash\", \"/runpod-volume/start.sh\"],
                 \"cloudType\": \"SECURE\",
                 \"supportPublicIp\": true
               }")
@@ -203,15 +213,7 @@ jobs:
 
           echo "Deployment restarted successfully"
 
-      - name: Setup kubectl
-        run: |
-          kubectl config set-cluster vps --server=${{ secrets.K8S_SERVER }} --insecure-skip-tls-verify
-          kubectl config set-credentials ci --token=${{ secrets.K8S_TOKEN }}
-          kubectl config set-context ci --cluster=vps --user=ci
-          kubectl config use-context ci
 
-      - name: Deploy
-        run: kubectl get nodes  # test de connexion
 
       - name: Summary
         run: |
