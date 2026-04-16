@@ -34,15 +34,9 @@ jobs:
           kubectl config set-credentials ci --token=${{ secrets.K8S_TOKEN }}
           kubectl config set-context ci --cluster=vps --user=ci
           kubectl config use-context ci
-
-      - name: Debug connection
-        run: |
-          echo "Token length: ${#TOKEN}"
-          echo "Token start: $(echo $TOKEN | head -c 10)"
-          curl -k -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" $K8S_SERVER/api/v1/namespaces
-        env:
-          TOKEN: ${{ secrets.K8S_TOKEN }}
-          K8S_SERVER: ${{ secrets.K8S_SERVER }}
+      
+      - name: Deploy
+        run: kubectl get nodes  # test de connexion
 
       - name: Check for existing pod
         id: check
