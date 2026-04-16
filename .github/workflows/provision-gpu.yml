@@ -50,9 +50,20 @@ jobs:
           GPU_TYPES=(
             "NVIDIA RTX PRO 6000 Blackwell Server Edition"
             "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+            "NVIDIA RTX PRO 4500"
             "NVIDIA L40"
             "NVIDIA L40S"
             "NVIDIA RTX 6000 Ada Generation"
+            "NVIDIA A100 80GB PCIe"
+            "NVIDIA A100-SXM4-80GB"
+            "NVIDIA H100 80GB HBM3"
+            "NVIDIA H100 PCIe"
+            "NVIDIA A40"
+            "NVIDIA RTX A6000"
+            "NVIDIA RTX A5000"
+            "NVIDIA GeForce RTX 4090"
+            "NVIDIA GeForce RTX 3090"
+            "NVIDIA GeForce RTX 3090 Ti"
           )
 
           POD_ID=""
