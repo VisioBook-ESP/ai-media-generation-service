@@ -76,7 +76,7 @@ jobs:
                 \"networkVolumeId\": \"${{ env.RUNPOD_VOLUME_ID }}\",
                 \"dataCenterIds\": [\"${{ env.RUNPOD_DATACENTER }}\"],
                 \"ports\": [\"8188/http\", \"22/tcp\"],
-                \"dockerStartCmd\": [\"bash\", \"/runpod-volume/start.sh\"],
+                \"dockerStartCmd\": \"bash /runpod-volume/start.sh\",
                 \"cloudType\": \"SECURE\",
                 \"supportPublicIp\": true
               }")
@@ -220,39 +220,35 @@ jobs:
     if: inputs.action == 'stop'
     runs-on: ubuntu-latest
     steps:
-      - name: Find pod
-        id: find
+      - name: Find and terminate all pods
         run: |
           RESPONSE=$(curl -s \
             --url ${{ env.RUNPOD_API_URL }}/pods \
             --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
 
-          POD_ID=$(echo "$RESPONSE" | jq -r '.[] | select(.name == "${{ env.POD_NAME }}") | .id')
+          POD_IDS=$(echo "$RESPONSE" | jq -r '.[] | select(.name == "${{ env.POD_NAME }}") | .id')
 
-          if [ -z "$POD_ID" ]; then
+          if [ -z "$POD_IDS" ]; then
             echo "::warning::No ${{ env.POD_NAME }} pod found"
+            echo "## GPU Pod Stop" >> $GITHUB_STEP_SUMMARY
+            echo "No pod found to terminate." >> $GITHUB_STEP_SUMMARY
             exit 0
           fi
-          echo "pod_id=$POD_ID" >> "$GITHUB_OUTPUT"
-          echo "Found pod: $POD_ID"
 
-      - name: Terminate pod
-        if: steps.find.outputs.pod_id != ''
-        run: |
-          POD_ID="${{ steps.find.outputs.pod_id }}"
+          TERMINATED=""
+          for POD_ID in $POD_IDS; do
+            echo "Terminating pod: $POD_ID"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --request DELETE \
+              --url ${{ env.RUNPOD_API_URL }}/pods/$POD_ID \
+              --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+            echo "  Pod $POD_ID terminated (HTTP $HTTP_CODE)"
+            TERMINATED="$TERMINATED\n- \`$POD_ID\` (HTTP $HTTP_CODE)"
+          done
 
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            --request DELETE \
-            --url ${{ env.RUNPOD_API_URL }}/pods/$POD_ID \
-            --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
-
-          echo "Pod $POD_ID terminated (HTTP $HTTP_CODE)"
-
-      - name: Summary
-        run: |
-          echo "## GPU Pod Stopped" >> $GITHUB_STEP_SUMMARY
+          echo "## GPU Pods Stopped" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Pod \`${{ steps.find.outputs.pod_id }}\` has been terminated." >> $GITHUB_STEP_SUMMARY
+          echo -e "Terminated pods:$TERMINATED" >> $GITHUB_STEP_SUMMARY
 
   # ─── Check pod status ─────────────────────────────────────────────────
   status:
