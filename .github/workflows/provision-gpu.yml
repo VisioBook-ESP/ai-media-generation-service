@@ -104,7 +104,8 @@ jobs:
               fi
             fi
 
-            echo "  Not available (HTTP $HTTP_CODE) — trying next GPU..."
+            echo "  Not available (HTTP $HTTP_CODE) — $BODY"
+            echo "  Trying next GPU..."
           done
 
           if [ -z "$POD_ID" ]; then
