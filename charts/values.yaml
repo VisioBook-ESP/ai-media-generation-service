@@ -74,8 +74,8 @@ selectorLabels:
 resources: {}
 
 env:
-  PORT=8087
-  ENV=production
-  LOG_LEVEL=info
-  NATS_URL=nats://nats.visiobook-namespace.svc.cluster.local:4222
-  NATS_STREAM=visiobook
+  PORT: 8087
+  ENV: production
+  LOG_LEVEL: info
+  NATS_URL: nats://nats.visiobook-namespace.svc.cluster.local:4222
+  NATS_STREAM: visiobook
