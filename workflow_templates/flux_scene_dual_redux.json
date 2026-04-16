@@ -1,0 +1,110 @@
+{
+  "1": {
+    "inputs": { "unet_name": "flux1_dev_fp16.safetensors", "weight_dtype": "default" },
+    "class_type": "UNETLoader"
+  },
+  "2": {
+    "inputs": { "clip_name1": "t5xxl_fp16.safetensors", "clip_name2": "clip_l.safetensors", "type": "flux", "device": "default" },
+    "class_type": "DualCLIPLoader"
+  },
+  "3": {
+    "inputs": { "vae_name": "ae.safetensors" },
+    "class_type": "VAELoader"
+  },
+  "4": {
+    "inputs": { "max_shift": 1.15, "base_shift": 0.5, "width": 1024, "height": 576, "model": ["1", 0] },
+    "class_type": "ModelSamplingFlux"
+  },
+  "5": {
+    "inputs": { "clip_name": "sigclip_vision_patch14_384.safetensors" },
+    "class_type": "CLIPVisionLoader"
+  },
+  "30": {
+    "inputs": { "style_model_name": "flux1-redux-dev.safetensors" },
+    "class_type": "StyleModelLoader"
+  },
+
+  "6": {
+    "inputs": { "image": "character.png", "upload": "image" },
+    "class_type": "LoadImage"
+  },
+  "7": {
+    "inputs": { "image": "location.png", "upload": "image" },
+    "class_type": "LoadImage"
+  },
+
+  "8": {
+    "inputs": { "crop": "center", "clip_vision": ["5", 0], "image": ["6", 0] },
+    "class_type": "CLIPVisionEncode"
+  },
+  "9": {
+    "inputs": { "crop": "center", "clip_vision": ["5", 0], "image": ["7", 0] },
+    "class_type": "CLIPVisionEncode"
+  },
+
+  "10": {
+    "inputs": { "text": "", "clip": ["2", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive Prompt" }
+  },
+  "11": {
+    "inputs": { "text": "", "clip": ["2", 0] },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt" }
+  },
+
+  "12": {
+    "inputs": { "guidance": 3.5, "conditioning": ["10", 0] },
+    "class_type": "FluxGuidance"
+  },
+  "13": {
+    "inputs": { "strength": 0.25, "strength_type": "multiply", "conditioning": ["12", 0], "style_model": ["30", 0], "clip_vision_output": ["8", 0] },
+    "class_type": "StyleModelApply",
+    "_meta": { "title": "Redux Character" }
+  },
+  "14": {
+    "inputs": { "strength": 0.5, "strength_type": "multiply", "conditioning": ["13", 0], "style_model": ["30", 0], "clip_vision_output": ["9", 0] },
+    "class_type": "StyleModelApply",
+    "_meta": { "title": "Redux Location" }
+  },
+
+  "20": {
+    "inputs": { "noise_seed": 0 },
+    "class_type": "RandomNoise"
+  },
+  "21": {
+    "inputs": { "sampler_name": "euler" },
+    "class_type": "KSamplerSelect"
+  },
+  "22": {
+    "inputs": { "scheduler": "simple", "steps": 20, "denoise": 1, "model": ["4", 0] },
+    "class_type": "BasicScheduler"
+  },
+  "23": {
+    "inputs": { "model": ["4", 0], "conditioning": ["14", 0] },
+    "class_type": "BasicGuider"
+  },
+  "24": {
+    "inputs": { "width": 1024, "height": 576, "batch_size": 1 },
+    "class_type": "EmptySD3LatentImage"
+  },
+  "25": {
+    "inputs": {
+      "noise": ["20", 0],
+      "guider": ["23", 0],
+      "sampler": ["21", 0],
+      "sigmas": ["22", 0],
+      "latent_image": ["24", 0]
+    },
+    "class_type": "SamplerCustomAdvanced"
+  },
+
+  "40": {
+    "inputs": { "samples": ["25", 0], "vae": ["3", 0] },
+    "class_type": "VAEDecode"
+  },
+  "41": {
+    "inputs": { "filename_prefix": "scene", "images": ["40", 0] },
+    "class_type": "SaveImage"
+  }
+}

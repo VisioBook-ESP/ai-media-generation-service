@@ -1,0 +1,93 @@
+import logging
+from app.workflows import flux_portrait, flux_location
+from app import storage_paths
+
+logger = logging.getLogger(__name__)
+
+
+class ReferenceHandler:
+    def __init__(self, comfyui, publisher, storage, settings):
+        self._comfyui = comfyui
+        self._publisher = publisher
+        self._storage = storage
+        self._settings = settings
+
+    async def handle(self, data: dict) -> None:
+        user_id = data["userId"]
+        project_id = data["projectId"]
+        execution_id = data.get("executionId")
+        book_style = data["bookStyle"]
+        characters = data.get("characters", [])
+        locations = data.get("locations", [])
+
+        await self._publisher.publish("visiobook.ai.progress", {
+            "executionId": execution_id,
+            "step": "reference_generation",
+            "progress": 5,
+            "message": f"Starting generation: {len(characters)} character(s), {len(locations)} location(s)",
+        })
+
+        for char in characters:
+            character_id = char["characterId"]
+            try:
+                workflow = flux_portrait.build(
+                    portrait_prompt=char["portraitPrompt"],
+                    negative_prompt=char.get("portraitNegativePrompt", ""),
+                    character_id=character_id,
+                )
+                image_bytes = await self._comfyui.run_workflow(workflow)
+
+                path = storage_paths.character_ref(user_id, project_id, character_id)
+                upload_url = await self._storage.get_upload_url(path, "image/png")
+                await self._storage.upload_file(upload_url, image_bytes, "image/png")
+
+                await self._publisher.publish("visiobook.ai.reference.completed", {
+                    "projectId": project_id,
+                    "characterId": character_id,
+                    "referenceImageUrl": path,
+                })
+                logger.info("Character reference completed", extra={"character_id": character_id})
+            except Exception as exc:
+                logger.exception("Character reference failed", extra={"character_id": character_id})
+                await self._publisher.publish("visiobook.ai.reference.failed", {
+                    "executionId": execution_id,
+                    "characterId": character_id,
+                    "projectId": project_id,
+                    "error": str(exc),
+                })
+
+        for loc in locations:
+            location_id = loc["locationId"]
+            try:
+                workflow = flux_location.build(
+                    location_prompt=loc["descriptionPrompt"],
+                    negative_prompt=loc.get("negativePrompt", ""),
+                    location_id=location_id,
+                )
+                image_bytes = await self._comfyui.run_workflow(workflow)
+
+                path = storage_paths.location_ref(user_id, project_id, location_id)
+                upload_url = await self._storage.get_upload_url(path, "image/png")
+                await self._storage.upload_file(upload_url, image_bytes, "image/png")
+
+                await self._publisher.publish("visiobook.ai.reference.completed", {
+                    "projectId": project_id,
+                    "locationId": location_id,
+                    "referenceImageUrl": path,
+                })
+                logger.info("Location reference completed", extra={"location_id": location_id})
+            except Exception as exc:
+                logger.exception("Location reference failed", extra={"location_id": location_id})
+                await self._publisher.publish("visiobook.ai.reference.failed", {
+                    "executionId": execution_id,
+                    "locationId": location_id,
+                    "projectId": project_id,
+                    "error": str(exc),
+                })
+
+        await self._publisher.publish("visiobook.ai.progress", {
+            "executionId": execution_id,
+            "step": "reference_generation",
+            "progress": 10,
+            "message": f"All references done: {len(characters)} character(s) + {len(locations)} location(s)",
+        })

@@ -1,0 +1,263 @@
+name: GPU Pod Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - start
+          - stop
+          - status
+
+env:
+  RUNPOD_API_URL: "https://rest.runpod.io/v1"
+  RUNPOD_VOLUME_ID: "qzq5noou53"
+  RUNPOD_DATACENTER: "EU-RO-1"
+  COMFYUI_IMAGE: "vattv/visiobook-comfyui:v44"
+  POD_NAME: "visiobook-comfyui"
+  K8S_NAMESPACE: "visiobook-namespace"
+  K8S_DEPLOYMENT: "ai-media-generation-service"
+  K8S_CONFIGMAP: "ai-media-generation-service-config"
+
+jobs:
+  # ─── Start a new GPU pod ──────────────────────────────────────────────
+  start:
+    if: inputs.action == 'start'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for existing pod
+        id: check
+        run: |
+          RESPONSE=$(curl -s \
+            --url ${{ env.RUNPOD_API_URL }}/pods \
+            --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+
+          EXISTING=$(echo "$RESPONSE" | jq -r '.[] | select(.name == "${{ env.POD_NAME }}") | .id' 2>/dev/null || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "existing_pod_id=$EXISTING" >> "$GITHUB_OUTPUT"
+            echo "::warning::Pod ${{ env.POD_NAME }} already exists: $EXISTING"
+          fi
+
+      - name: Create pod (try GPUs by priority)
+        if: steps.check.outputs.existing_pod_id == ''
+        id: create
+        run: |
+          # GPU priority list — order matters, first available wins
+          GPU_TYPES=(
+            "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+            "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"
+            "NVIDIA L40"
+            "NVIDIA L40S"
+            "NVIDIA RTX 6000 Ada Generation"
+          )
+
+          POD_ID=""
+          USED_GPU=""
+
+          for GPU in "${GPU_TYPES[@]}"; do
+            echo "Trying GPU: $GPU ..."
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" \
+              --url ${{ env.RUNPOD_API_URL }}/pods \
+              --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}" \
+              --header "Content-Type: application/json" \
+              --data "{
+                \"name\": \"${{ env.POD_NAME }}\",
+                \"imageName\": \"${{ env.COMFYUI_IMAGE }}\",
+                \"gpuTypeIds\": [\"${GPU}\"],
+                \"gpuCount\": 1,
+                \"containerDiskInGb\": 20,
+                \"volumeInGb\": 0,
+                \"volumeMountPath\": \"/runpod-volume\",
+                \"networkVolumeId\": \"${{ env.RUNPOD_VOLUME_ID }}\",
+                \"dataCenterIds\": [\"${{ env.RUNPOD_DATACENTER }}\"],
+                \"ports\": [\"8188/http\", \"22/tcp\"],
+                \"dockerStartCmd\": [\"bash\", \"/runpod-volume/start.sh\"],
+                \"cloudType\": \"SECURE\",
+                \"supportPublicIp\": true
+              }")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+
+            if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then
+              POD_ID=$(echo "$BODY" | jq -r '.id')
+              if [ "$POD_ID" != "null" ] && [ -n "$POD_ID" ]; then
+                USED_GPU="$GPU"
+                echo "Pod created with $GPU: $POD_ID"
+                break
+              fi
+            fi
+
+            echo "  Not available (HTTP $HTTP_CODE) — trying next GPU..."
+          done
+
+          if [ -z "$POD_ID" ]; then
+            echo "## No GPU Available" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "None of the requested GPU types are currently available on **${{ env.RUNPOD_DATACENTER }}**." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Tried (in order):" >> $GITHUB_STEP_SUMMARY
+            for GPU in "${GPU_TYPES[@]}"; do
+              echo "- $GPU" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Re-run this workflow later when GPUs become available." >> $GITHUB_STEP_SUMMARY
+            echo "::error::No GPU available on ${{ env.RUNPOD_DATACENTER }}. Tried: ${GPU_TYPES[*]}"
+            exit 1
+          fi
+
+          echo "pod_id=$POD_ID" >> "$GITHUB_OUTPUT"
+          echo "gpu=$USED_GPU" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve pod ID
+        id: pod
+        run: |
+          POD_ID="${{ steps.create.outputs.pod_id || steps.check.outputs.existing_pod_id }}"
+          echo "pod_id=$POD_ID" >> "$GITHUB_OUTPUT"
+          echo "Using pod: $POD_ID"
+
+      - name: Wait for pod RUNNING
+        run: |
+          POD_ID="${{ steps.pod.outputs.pod_id }}"
+          echo "Waiting for pod $POD_ID to be RUNNING..."
+
+          for i in $(seq 1 60); do
+            RESPONSE=$(curl -s \
+              --url ${{ env.RUNPOD_API_URL }}/pods/$POD_ID \
+              --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.desiredStatus')
+            echo "  Attempt $i/60 — status: $STATUS"
+
+            if [ "$STATUS" = "RUNNING" ]; then
+              echo "Pod is RUNNING"
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$STATUS" != "RUNNING" ]; then
+            echo "::error::Pod did not reach RUNNING state after 10 minutes"
+            exit 1
+          fi
+
+      - name: Wait for ComfyUI healthy
+        run: |
+          POD_ID="${{ steps.pod.outputs.pod_id }}"
+          COMFYUI_URL="https://${POD_ID}-8188.proxy.runpod.net"
+          echo "Waiting for ComfyUI at $COMFYUI_URL ..."
+
+          for i in $(seq 1 60); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$COMFYUI_URL/system_stats" 2>/dev/null || echo "000")
+            echo "  Attempt $i/60 — HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "ComfyUI is healthy"
+              break
+            fi
+            sleep 10
+          done
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::ComfyUI did not become healthy after 10 minutes"
+            exit 1
+          fi
+
+      - name: Update Kubernetes ConfigMap
+        run: |
+          POD_ID="${{ steps.pod.outputs.pod_id }}"
+          COMFYUI_URL="https://${POD_ID}-8188.proxy.runpod.net"
+
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+
+          kubectl patch configmap ${{ env.K8S_CONFIGMAP }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --type merge \
+            -p "{\"data\":{\"COMFYUI_URL\":\"$COMFYUI_URL\"}}"
+
+          echo "ConfigMap updated: COMFYUI_URL=$COMFYUI_URL"
+
+          kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} \
+            -n ${{ env.K8S_NAMESPACE }}
+
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=120s
+
+          echo "Deployment restarted successfully"
+
+      - name: Summary
+        run: |
+          POD_ID="${{ steps.pod.outputs.pod_id }}"
+          GPU="${{ steps.create.outputs.gpu }}"
+          echo "## GPU Pod Started" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Pod ID | \`$POD_ID\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| ComfyUI | https://${POD_ID}-8188.proxy.runpod.net |" >> $GITHUB_STEP_SUMMARY
+          echo "| GPU | $GPU |" >> $GITHUB_STEP_SUMMARY
+          echo "| Datacenter | ${{ env.RUNPOD_DATACENTER }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | ${{ env.COMFYUI_IMAGE }} |" >> $GITHUB_STEP_SUMMARY
+
+  # ─── Stop the GPU pod ─────────────────────────────────────────────────
+  stop:
+    if: inputs.action == 'stop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find pod
+        id: find
+        run: |
+          RESPONSE=$(curl -s \
+            --url ${{ env.RUNPOD_API_URL }}/pods \
+            --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+
+          POD_ID=$(echo "$RESPONSE" | jq -r '.[] | select(.name == "${{ env.POD_NAME }}") | .id')
+
+          if [ -z "$POD_ID" ]; then
+            echo "::warning::No ${{ env.POD_NAME }} pod found"
+            exit 0
+          fi
+          echo "pod_id=$POD_ID" >> "$GITHUB_OUTPUT"
+          echo "Found pod: $POD_ID"
+
+      - name: Terminate pod
+        if: steps.find.outputs.pod_id != ''
+        run: |
+          POD_ID="${{ steps.find.outputs.pod_id }}"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --request DELETE \
+            --url ${{ env.RUNPOD_API_URL }}/pods/$POD_ID \
+            --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+
+          echo "Pod $POD_ID terminated (HTTP $HTTP_CODE)"
+
+      - name: Summary
+        run: |
+          echo "## GPU Pod Stopped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Pod \`${{ steps.find.outputs.pod_id }}\` has been terminated." >> $GITHUB_STEP_SUMMARY
+
+  # ─── Check pod status ─────────────────────────────────────────────────
+  status:
+    if: inputs.action == 'status'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get pod status
+        run: |
+          RESPONSE=$(curl -s \
+            --url ${{ env.RUNPOD_API_URL }}/pods \
+            --header "Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}")
+
+          echo "## RunPod Pods" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo "$RESPONSE" | jq '[.[] | {id, name, desiredStatus, gpu: .gpu.displayName, image}]' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "$RESPONSE" | jq '[.[] | {id, name, desiredStatus, gpu: .gpu.displayName, image}]'
