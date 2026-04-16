@@ -2,7 +2,7 @@ name: ai-media-generation-service
 replicaCount: 1
 image:
   repository: ghcr.io/visiobook-esp/ai-media-generation-service-dev
-  tag: "sha-3ed00cf"
+  tag: "sha-5261ab7"
   pullPolicy: IfNotPresent
 
 strategy:
