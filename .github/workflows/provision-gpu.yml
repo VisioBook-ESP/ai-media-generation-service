@@ -191,9 +191,6 @@ jobs:
           POD_ID="${{ steps.pod.outputs.pod_id }}"
           COMFYUI_URL="https://${POD_ID}-8188.proxy.runpod.net"
 
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
-
           kubectl patch configmap ai-media-generation-service-config \
             -n visiobook-namespace \
             --type merge \
