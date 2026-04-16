@@ -34,9 +34,6 @@ jobs:
           kubectl config set-credentials ci --token=${{ secrets.K8S_TOKEN }}
           kubectl config set-context ci --cluster=vps --user=ci
           kubectl config use-context ci
-      
-      - name: Deploy
-        run: kubectl get nodes  # test de connexion
 
       - name: Check for existing pod
         id: check
@@ -197,23 +194,17 @@ jobs:
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
 
-          kubectl patch configmap ${{ env.K8S_CONFIGMAP }} \
-            -n ${{ env.K8S_NAMESPACE }} \
+          kubectl patch configmap ai-media-generation-service-config \
+            -n visiobook-namespace \
             --type merge \
             -p "{\"data\":{\"COMFYUI_URL\":\"$COMFYUI_URL\"}}"
 
           echo "ConfigMap updated: COMFYUI_URL=$COMFYUI_URL"
 
           kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} \
-            -n ${{ env.K8S_NAMESPACE }}
-
-          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} \
-            -n ${{ env.K8S_NAMESPACE }} \
-            --timeout=120s
+            -n visiobook-namespace
 
           echo "Deployment restarted successfully"
-
-
 
       - name: Summary
         run: |

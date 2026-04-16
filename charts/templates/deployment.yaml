@@ -54,6 +54,16 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.existingSecretMinio }}
                   key: MINIO_SECRET_KEY
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecretMinio }}
+                  key: MINIO_ENDPOINT
+            - name: MINIO_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecretMinio }}
+                  key: MINIO_PORT
             {{- end }}
             - name: configMapRunpod
               valueFrom:
