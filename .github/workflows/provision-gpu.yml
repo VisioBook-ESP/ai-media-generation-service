@@ -191,10 +191,15 @@ jobs:
           POD_ID="${{ steps.pod.outputs.pod_id }}"
           COMFYUI_URL="https://${POD_ID}-8188.proxy.runpod.net"
 
-          kubectl patch configmap ai-media-generation-service-config \
-            -n visiobook-namespace \
-            --type merge \
-            -p "{\"data\":{\"COMFYUI_URL\":\"$COMFYUI_URL\"}}"
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: ai-media-generation-service-config
+            namespace: visiobook-namespace
+          data:
+            COMFYUI_URL: "$COMFYUI_URL"
+          EOF
 
           echo "ConfigMap updated: COMFYUI_URL=$COMFYUI_URL"
 
