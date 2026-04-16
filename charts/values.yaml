@@ -62,10 +62,7 @@ affinity: {}
 existingSecretMinio: ""
 
 podLabels:
-  app: ai-media-generation-service
-  version: "latest"
   app.kubernetes.io/name: ai-media-generation-service
-  app.kubernetes.io/version: "latest"
   app.kubernetes.io/component: backend
 
 selectorLabels:

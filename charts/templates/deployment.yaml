@@ -21,7 +21,6 @@ spec:
   selector:
     matchLabels:
       app: {{ include "ai-media-generation-service.name" . }}
-      version: {{ .Values.image.tag | quote }}
   template:
     metadata:
       labels:
@@ -42,33 +41,14 @@ spec:
             - name: http
               containerPort: 8083
               protocol: TCP
-          env:
+          envFrom:
+            - configMapRef:
+                name: ai-media-generation-service-config
             {{- if .Values.existingSecretMinio }}
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.existingSecretMinio }}
-                  key: MINIO_ACCESS_KEY
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.existingSecretMinio }}
-                  key: MINIO_SECRET_KEY
-            - name: MINIO_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.existingSecretMinio }}
-                  key: MINIO_ENDPOINT
-            - name: MINIO_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.existingSecretMinio }}
-                  key: MINIO_PORT
+            - secretRef:
+                name: {{ .Values.existingSecretMinio }}
             {{- end }}
-            - name: configMapRunpod
-              valueFrom:
-                configMapKeyRef:
-                  name: ai-media-generation-service-config
+          env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: "{{ $value }}"
