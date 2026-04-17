@@ -76,4 +76,3 @@ env:
   LOG_LEVEL: info
   NATS_URL: nats://nats.visiobook-namespace.svc.cluster.local:4222
   NATS_STREAM: VISIOBOOK_PROJECT
-  COMFYUI_URL: ""
