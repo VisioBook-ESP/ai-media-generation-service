@@ -10,14 +10,13 @@ logger = logging.getLogger(__name__)
 class S3StorageClient:
     """S3-compatible storage client (works with MinIO and AWS S3)."""
 
-    def __init__(self, endpoint_url: str, bucket: str, access_key: str, secret_key: str, region: str = "us-east-1"):
+    def __init__(self, endpoint_url: str, bucket: str, access_key: str, secret_key: str):
         self._bucket = bucket
         self._s3 = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
-            region_name=region,
             config=Config(signature_version="s3v4"),
         )
         self._ensure_bucket()
