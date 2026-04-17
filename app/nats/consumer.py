@@ -34,11 +34,26 @@ class NATSConsumer:
         self._nc = await nats.connect(self._settings.NATS_URL)
         js = self._nc.jetstream()
 
+        required_subject = "visiobook.media.>"
         try:
-            await js.stream_info(self._settings.NATS_STREAM)
-            logger.info("NATS stream '%s' already exists", self._settings.NATS_STREAM)
+            info = await js.stream_info(self._settings.NATS_STREAM)
+            subjects = info.config.subjects or []
+            logger.info("NATS stream '%s' found (subjects: %s)", self._settings.NATS_STREAM, subjects)
+
+            if required_subject not in subjects:
+                subjects.append(required_subject)
+                await js.update_stream(name=self._settings.NATS_STREAM, subjects=subjects)
+                logger.info("Added '%s' to stream subjects", required_subject)
         except nats.js.errors.NotFoundError:
-            await js.add_stream(name=self._settings.NATS_STREAM, subjects=["visiobook.>"])
+            logger.info("NATS stream '%s' not found, creating...", self._settings.NATS_STREAM)
+            await js.add_stream(
+                name=self._settings.NATS_STREAM,
+                subjects=["visiobook.project.>", "visiobook.ai.>", required_subject],
+                max_bytes=1024 * 1024 * 1024,
+                max_age=7 * 24 * 3600,
+                storage="file",
+                discard="old",
+            )
             logger.info("NATS stream '%s' created", self._settings.NATS_STREAM)
 
         await js.subscribe(
