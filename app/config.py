@@ -13,12 +13,18 @@ class Settings(BaseSettings):
     # ComfyUI (RunPod pod)
     COMFYUI_URL: str = "http://localhost:8188"
 
-    # S3 / MinIO storage
-    S3_ENDPOINT_URL: str = "http://minio:9000"
-    S3_BUCKET: str = "visiobook"
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
-    S3_REGION: str = "us-east-1"
+    # MinIO storage
+    MINIO_ENDPOINT: str = "localhost"
+    MINIO_PORT: str = "9000"
+    MINIO_USE_SSL: str = "false"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET_RESULTS: str = "analysis-results"
+
+    @property
+    def S3_ENDPOINT_URL(self) -> str:
+        scheme = "https" if self.MINIO_USE_SSL.lower() == "true" else "http"
+        return f"{scheme}://{self.MINIO_ENDPOINT}:{self.MINIO_PORT}"
 
     # HuggingFace (utilisé par setup_models.sh, pas par le service)
     HF_TOKEN: str = ""

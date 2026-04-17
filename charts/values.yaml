@@ -77,5 +77,3 @@ env:
   NATS_URL: nats://nats.visiobook-namespace.svc.cluster.local:4222
   NATS_STREAM: visiobook
   COMFYUI_URL: ""
-  S3_ENDPOINT_URL: http://minio-analysis.visiobook-namespace.svc.cluster.local:9000
-  S3_BUCKET: visiobook
