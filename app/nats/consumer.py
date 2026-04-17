@@ -56,10 +56,17 @@ class NATSConsumer:
             )
             logger.info("NATS stream '%s' created", self._settings.NATS_STREAM)
 
+        durable_name = "ai-media-gen-pipeline"
+        try:
+            await js.delete_consumer(self._settings.NATS_STREAM, durable_name)
+            logger.info("Deleted stale consumer '%s'", durable_name)
+        except Exception:
+            pass
+
         await js.subscribe(
             "visiobook.media.generate",
             cb=self._on_generate,
-            durable="ai-media-gen-pipeline",
+            durable=durable_name,
             stream=self._settings.NATS_STREAM,
         )
         logger.info("NATS consumer started — listening on visiobook.media.generate")
