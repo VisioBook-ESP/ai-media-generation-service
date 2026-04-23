@@ -38,14 +38,22 @@ class NATSConsumer:
         try:
             info = await js.stream_info(self._settings.NATS_STREAM)
             subjects = info.config.subjects or []
-            logger.info("NATS stream '%s' found (subjects: %s)", self._settings.NATS_STREAM, subjects)
+            logger.info(
+                "NATS stream '%s' found (subjects: %s)",
+                self._settings.NATS_STREAM,
+                subjects,
+            )
 
             if required_subject not in subjects:
                 subjects.append(required_subject)
-                await js.update_stream(name=self._settings.NATS_STREAM, subjects=subjects)
+                await js.update_stream(
+                    name=self._settings.NATS_STREAM, subjects=subjects
+                )
                 logger.info("Added '%s' to stream subjects", required_subject)
         except nats.js.errors.NotFoundError:
-            logger.info("NATS stream '%s' not found, creating...", self._settings.NATS_STREAM)
+            logger.info(
+                "NATS stream '%s' not found, creating...", self._settings.NATS_STREAM
+            )
             await js.add_stream(
                 name=self._settings.NATS_STREAM,
                 subjects=["visiobook.project.>", "visiobook.ai.>", required_subject],
@@ -74,10 +82,13 @@ class NATSConsumer:
     async def _on_generate(self, msg) -> None:
         try:
             data = json.loads(msg.data)
-            logger.info("Received pipeline event", extra={
-                "projectId": data.get("projectId"),
-                "executionId": data.get("executionId"),
-            })
+            logger.info(
+                "Received pipeline event",
+                extra={
+                    "projectId": data.get("projectId"),
+                    "executionId": data.get("executionId"),
+                },
+            )
             await _run_with_heartbeat(msg, self._pipeline_handler.handle(data))
             await msg.ack()
         except Exception as exc:

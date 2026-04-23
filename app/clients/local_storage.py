@@ -15,7 +15,9 @@ class LocalStorageClient:
         local_path.parent.mkdir(parents=True, exist_ok=True)
         return str(local_path)
 
-    async def upload_file(self, upload_url: str, data: bytes, content_type: str) -> None:
+    async def upload_file(
+        self, upload_url: str, data: bytes, content_type: str
+    ) -> None:
         dest = Path(upload_url)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)

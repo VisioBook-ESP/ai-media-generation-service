@@ -1,7 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     PORT: int = 8087
     ENV: str = "development"
     LOG_LEVEL: str = "info"
@@ -28,6 +30,3 @@ class Settings(BaseSettings):
 
     # HuggingFace (utilisé par setup_models.sh, pas par le service)
     HF_TOKEN: str = ""
-
-    class Config:
-        env_file = ".env"

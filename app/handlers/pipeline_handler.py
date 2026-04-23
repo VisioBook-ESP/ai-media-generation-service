@@ -26,8 +26,12 @@ class PipelineHandler:
 
         # --- Phase 1: generate character references ---
         char_ref_paths: dict[str, str] = {}
-        await self._publish_progress(execution_id, "reference_generation", 5,
-                                     f"Generating {len(characters)} character reference(s)")
+        await self._publish_progress(
+            execution_id,
+            "reference_generation",
+            5,
+            f"Generating {len(characters)} character reference(s)",
+        )
 
         for char in characters:
             name = char["name"]
@@ -44,26 +48,38 @@ class PipelineHandler:
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
                 char_ref_paths[name] = path
 
-                await self._publisher.publish("visiobook.ai.reference.completed", {
-                    "executionId": execution_id,
-                    "projectId": project_id,
-                    "characterName": name,
-                    "referenceImageUrl": path,
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.reference.completed",
+                    {
+                        "executionId": execution_id,
+                        "projectId": project_id,
+                        "characterName": name,
+                        "referenceImageUrl": path,
+                    },
+                )
                 logger.info("Character reference completed", extra={"character": name})
             except Exception as exc:
-                logger.exception("Character reference failed", extra={"character": name})
-                await self._publisher.publish("visiobook.ai.reference.failed", {
-                    "executionId": execution_id,
-                    "projectId": project_id,
-                    "characterName": name,
-                    "error": str(exc),
-                })
+                logger.exception(
+                    "Character reference failed", extra={"character": name}
+                )
+                await self._publisher.publish(
+                    "visiobook.ai.reference.failed",
+                    {
+                        "executionId": execution_id,
+                        "projectId": project_id,
+                        "characterName": name,
+                        "error": str(exc),
+                    },
+                )
 
         # --- Phase 2: generate location references ---
         loc_ref_paths: dict[str, str] = {}
-        await self._publish_progress(execution_id, "reference_generation", 10,
-                                     f"Generating {len(locations)} location reference(s)")
+        await self._publish_progress(
+            execution_id,
+            "reference_generation",
+            10,
+            f"Generating {len(locations)} location reference(s)",
+        )
 
         for loc in locations:
             location_id = loc["locationId"]
@@ -80,29 +96,43 @@ class PipelineHandler:
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
                 loc_ref_paths[location_id] = path
 
-                await self._publisher.publish("visiobook.ai.reference.completed", {
-                    "executionId": execution_id,
-                    "projectId": project_id,
-                    "locationId": location_id,
-                    "referenceImageUrl": path,
-                })
-                logger.info("Location reference completed", extra={"location_id": location_id})
+                await self._publisher.publish(
+                    "visiobook.ai.reference.completed",
+                    {
+                        "executionId": execution_id,
+                        "projectId": project_id,
+                        "locationId": location_id,
+                        "referenceImageUrl": path,
+                    },
+                )
+                logger.info(
+                    "Location reference completed", extra={"location_id": location_id}
+                )
             except Exception as exc:
-                logger.exception("Location reference failed", extra={"location_id": location_id})
-                await self._publisher.publish("visiobook.ai.reference.failed", {
-                    "executionId": execution_id,
-                    "projectId": project_id,
-                    "locationId": location_id,
-                    "error": str(exc),
-                })
+                logger.exception(
+                    "Location reference failed", extra={"location_id": location_id}
+                )
+                await self._publisher.publish(
+                    "visiobook.ai.reference.failed",
+                    {
+                        "executionId": execution_id,
+                        "projectId": project_id,
+                        "locationId": location_id,
+                        "error": str(exc),
+                    },
+                )
 
         # --- Phase 3: generate scene images ---
         sorted_scenes = sorted(scenes, key=lambda s: s.get("order", 0))
         total_scenes = len(sorted_scenes)
         scene_image_paths: dict[int, str] = {}
 
-        await self._publish_progress(execution_id, "image_generation", 15,
-                                     f"Generating {total_scenes} scene image(s)")
+        await self._publish_progress(
+            execution_id,
+            "image_generation",
+            15,
+            f"Generating {total_scenes} scene image(s)",
+        )
 
         for i, scene_data in enumerate(sorted_scenes):
             order = scene_data["order"]
@@ -135,28 +165,44 @@ class PipelineHandler:
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
                 scene_image_paths[order] = path
 
-                await self._publisher.publish("visiobook.ai.media.image.completed", {
-                    "executionId": execution_id,
-                    "sceneOrder": order,
-                    "mediaUrl": path,
-                    "mode": mode,
-                })
-                logger.info("Scene image completed", extra={"scene_id": scene_id, "mode": mode})
+                await self._publisher.publish(
+                    "visiobook.ai.media.image.completed",
+                    {
+                        "executionId": execution_id,
+                        "sceneOrder": order,
+                        "mediaUrl": path,
+                        "mode": mode,
+                    },
+                )
+                logger.info(
+                    "Scene image completed", extra={"scene_id": scene_id, "mode": mode}
+                )
             except Exception as exc:
                 logger.exception("Scene image failed", extra={"scene_id": scene_id})
-                await self._publisher.publish("visiobook.ai.media.failed", {
-                    "executionId": execution_id,
-                    "sceneOrder": order,
-                    "error": str(exc),
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.failed",
+                    {
+                        "executionId": execution_id,
+                        "sceneOrder": order,
+                        "error": str(exc),
+                    },
+                )
 
             progress = 15 + int((i + 1) / total_scenes * 25)
-            await self._publish_progress(execution_id, "image_generation", progress,
-                                         f"Scene {i + 1}/{total_scenes} done")
+            await self._publish_progress(
+                execution_id,
+                "image_generation",
+                progress,
+                f"Scene {i + 1}/{total_scenes} done",
+            )
 
         # --- Phase 4: generate animations ---
-        await self._publish_progress(execution_id, "animation_generation", 45,
-                                     f"Animating {len(scene_image_paths)} scene(s)")
+        await self._publish_progress(
+            execution_id,
+            "animation_generation",
+            45,
+            f"Animating {len(scene_image_paths)} scene(s)",
+        )
 
         for i, (order, image_path) in enumerate(sorted(scene_image_paths.items())):
             scene_id = f"scene_{order}"
@@ -179,38 +225,56 @@ class PipelineHandler:
                 upload_url = await self._storage.get_upload_url(path, "video/mp4")
                 await self._storage.upload_file(upload_url, video_bytes, "video/mp4")
 
-                await self._publisher.publish("visiobook.ai.media.animation.completed", {
-                    "executionId": execution_id,
-                    "sceneOrder": order,
-                    "mediaUrl": path,
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.animation.completed",
+                    {
+                        "executionId": execution_id,
+                        "sceneOrder": order,
+                        "mediaUrl": path,
+                    },
+                )
                 logger.info("Scene animation completed", extra={"scene_id": scene_id})
             except Exception as exc:
                 logger.exception("Scene animation failed", extra={"scene_id": scene_id})
-                await self._publisher.publish("visiobook.ai.media.failed", {
-                    "executionId": execution_id,
-                    "sceneOrder": order,
-                    "error": str(exc),
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.failed",
+                    {
+                        "executionId": execution_id,
+                        "sceneOrder": order,
+                        "error": str(exc),
+                    },
+                )
 
             progress = 45 + int((i + 1) / len(scene_image_paths) * 50)
-            await self._publish_progress(execution_id, "animation_generation", progress,
-                                         f"Animation {i + 1}/{len(scene_image_paths)} done")
+            await self._publish_progress(
+                execution_id,
+                "animation_generation",
+                progress,
+                f"Animation {i + 1}/{len(scene_image_paths)} done",
+            )
 
-        await self._publish_progress(execution_id, "pipeline", 100, "Pipeline completed")
-        await self._publisher.publish("visiobook.ai.pipeline.completed", {
-            "executionId": execution_id,
-            "projectId": project_id,
-        })
+        await self._publish_progress(
+            execution_id, "pipeline", 100, "Pipeline completed"
+        )
+        await self._publisher.publish(
+            "visiobook.ai.pipeline.completed",
+            {
+                "executionId": execution_id,
+                "projectId": project_id,
+            },
+        )
 
     async def _load_image_b64(self, storage_path: str) -> str:
         data = await self._storage.read_file(storage_path)
         return base64.b64encode(data).decode("utf-8")
 
     async def _publish_progress(self, execution_id, step, progress, message):
-        await self._publisher.publish("visiobook.ai.progress", {
-            "executionId": execution_id,
-            "step": step,
-            "progress": progress,
-            "message": message,
-        })
+        await self._publisher.publish(
+            "visiobook.ai.progress",
+            {
+                "executionId": execution_id,
+                "step": step,
+                "progress": progress,
+                "message": message,
+            },
+        )

@@ -19,6 +19,7 @@ _subscriber_task = None
 async def start_event_listener(nats_url: str, stream: str):
     """Subscribe to visiobook.ai.> and buffer events for the dev UI."""
     import nats as nats_client
+
     global _subscriber_task
 
     async def _listen():
@@ -32,7 +33,14 @@ async def start_event_listener(nats_url: str, stream: str):
                 data = json.loads(msg.data)
             except Exception:
                 data = msg.data.decode(errors="replace")
-            _events.append({"id": _event_counter, "ts": time.time() * 1000, "subject": msg.subject, "data": data})
+            _events.append(
+                {
+                    "id": _event_counter,
+                    "ts": time.time() * 1000,
+                    "subject": msg.subject,
+                    "data": data,
+                }
+            )
             await msg.ack()
 
     _subscriber_task = asyncio.create_task(_listen())
@@ -132,7 +140,8 @@ _EXAMPLE = {
     "correlationId": "test-corr-1",
 }
 
-_HTML = """<!DOCTYPE html>
+_HTML = (
+    """<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -172,7 +181,9 @@ _HTML = """<!DOCTYPE html>
 <div class="layout">
   <div class="panel">
     <label>Message JSON</label>
-    <textarea id="payload" spellcheck="false">""" + json.dumps(_EXAMPLE, indent=2, ensure_ascii=False) + """</textarea>
+    <textarea id="payload" spellcheck="false">"""
+    + json.dumps(_EXAMPLE, indent=2, ensure_ascii=False)
+    + """</textarea>
     <div class="actions">
       <button id="sendBtn" onclick="send()">Envoyer</button>
       <button class="secondary" onclick="resetExample()">Reset exemple</button>
@@ -190,7 +201,9 @@ _HTML = """<!DOCTYPE html>
   </div>
 </div>
 <script>
-const example = """ + json.dumps(_EXAMPLE, ensure_ascii=False) + """;
+const example = """
+    + json.dumps(_EXAMPLE, ensure_ascii=False)
+    + """;
 
 async function send() {
   const btn = document.getElementById('sendBtn');
@@ -250,3 +263,4 @@ setInterval(pollEvents, 2000);
 </body>
 </html>
 """
+)

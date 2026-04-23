@@ -21,20 +21,27 @@ class SceneHandler:
         book_style = data["bookStyle"]
         scenes = data.get("scenes", [])
 
-        await self._publisher.publish("visiobook.ai.progress", {
-            "executionId": execution_id,
-            "step": "image_generation",
-            "progress": 15,
-            "message": f"Starting scene generation: {len(scenes)} scene(s)",
-        })
+        await self._publisher.publish(
+            "visiobook.ai.progress",
+            {
+                "executionId": execution_id,
+                "step": "image_generation",
+                "progress": 15,
+                "message": f"Starting scene generation: {len(scenes)} scene(s)",
+            },
+        )
 
         for scene_data in scenes:
             scene_id = scene_data["sceneId"]
             prompt = scene_data["prompt"]
             character_ref = scene_data.get("characterRef")
             location_ref = scene_data.get("locationRef")
-            char_ref_url = character_ref.get("referenceImageUrl") if character_ref else None
-            loc_ref_url = location_ref.get("referenceImageUrl") if location_ref else None
+            char_ref_url = (
+                character_ref.get("referenceImageUrl") if character_ref else None
+            )
+            loc_ref_url = (
+                location_ref.get("referenceImageUrl") if location_ref else None
+            )
 
             try:
                 workflow, images, mode = await scene.build(
@@ -53,26 +60,37 @@ class SceneHandler:
                 upload_url = await self._storage.get_upload_url(path, "image/png")
                 await self._storage.upload_file(upload_url, image_bytes, "image/png")
 
-                await self._publisher.publish("visiobook.ai.media.image.completed", {
-                    "executionId": execution_id,
-                    "sceneId": scene_id,
-                    "mediaUrl": path,
-                })
-                logger.info("Scene image completed", extra={"scene_id": scene_id, "mode": mode})
+                await self._publisher.publish(
+                    "visiobook.ai.media.image.completed",
+                    {
+                        "executionId": execution_id,
+                        "sceneId": scene_id,
+                        "mediaUrl": path,
+                    },
+                )
+                logger.info(
+                    "Scene image completed", extra={"scene_id": scene_id, "mode": mode}
+                )
             except Exception as exc:
                 logger.exception("Scene image failed", extra={"scene_id": scene_id})
-                await self._publisher.publish("visiobook.ai.media.failed", {
-                    "executionId": execution_id,
-                    "sceneId": scene_id,
-                    "error": str(exc),
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.failed",
+                    {
+                        "executionId": execution_id,
+                        "sceneId": scene_id,
+                        "error": str(exc),
+                    },
+                )
 
-        await self._publisher.publish("visiobook.ai.progress", {
-            "executionId": execution_id,
-            "step": "image_generation",
-            "progress": 20,
-            "message": f"All scenes done: {len(scenes)} scene(s)",
-        })
+        await self._publisher.publish(
+            "visiobook.ai.progress",
+            {
+                "executionId": execution_id,
+                "step": "image_generation",
+                "progress": 20,
+                "message": f"All scenes done: {len(scenes)} scene(s)",
+            },
+        )
 
     async def _load_image_b64(self, storage_path: str) -> str:
         data = await self._storage.read_file(storage_path)

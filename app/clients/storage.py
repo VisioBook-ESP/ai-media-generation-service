@@ -17,7 +17,9 @@ class StorageServiceClient:
             response.raise_for_status()
             return response.json()["uploadUrl"]
 
-    async def upload_file(self, upload_url: str, data: bytes, content_type: str) -> None:
+    async def upload_file(
+        self, upload_url: str, data: bytes, content_type: str
+    ) -> None:
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.put(
                 upload_url,
@@ -28,7 +30,9 @@ class StorageServiceClient:
 
     async def download_file(self, path: str, local_path: str) -> None:
         async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.get(f"{self._base_url}/download", params={"path": path})
+            response = await client.get(
+                f"{self._base_url}/download", params={"path": path}
+            )
             response.raise_for_status()
             content = response.content
 
