@@ -18,7 +18,10 @@ class ComfyUIClient:
         self._base_url = base_url.rstrip("/")
 
     async def run_workflow(
-        self, workflow: dict, images: list[dict] | None = None, output_type: str = "image"
+        self,
+        workflow: dict,
+        images: list[dict] | None = None,
+        output_type: str = "image",
     ) -> bytes:
         last_exc = None
         for attempt in range(1, _MAX_RETRIES + 1):
@@ -29,7 +32,10 @@ class ComfyUIClient:
                 if attempt < _MAX_RETRIES:
                     logger.warning(
                         "ComfyUI attempt %d/%d failed: %s — retrying in %ss",
-                        attempt, _MAX_RETRIES, exc, _RETRY_DELAY,
+                        attempt,
+                        _MAX_RETRIES,
+                        exc,
+                        _RETRY_DELAY,
                     )
                     await asyncio.sleep(_RETRY_DELAY)
         raise last_exc
@@ -38,7 +44,9 @@ class ComfyUIClient:
         self, workflow: dict, images: list[dict] | None, output_type: str
     ) -> bytes:
         timeout = 120 if output_type == "image" else 600
-        async with httpx.AsyncClient(base_url=self._base_url, timeout=timeout) as client:
+        async with httpx.AsyncClient(
+            base_url=self._base_url, timeout=timeout
+        ) as client:
             if images:
                 for img in images:
                     await self._upload_image(client, img["name"], img["image"])
@@ -59,9 +67,7 @@ class ComfyUIClient:
         resp.raise_for_status()
         logger.debug("Uploaded image %s to ComfyUI", name)
 
-    async def _queue_prompt(
-        self, client: httpx.AsyncClient, workflow: dict
-    ) -> str:
+    async def _queue_prompt(self, client: httpx.AsyncClient, workflow: dict) -> str:
         client_id = uuid.uuid4().hex
         payload = {"prompt": workflow, "client_id": client_id}
         resp = await client.post("/prompt", json=payload)
@@ -72,9 +78,7 @@ class ComfyUIClient:
         logger.info("ComfyUI prompt queued", extra={"prompt_id": prompt_id})
         return prompt_id
 
-    async def _poll_until_done(
-        self, client: httpx.AsyncClient, prompt_id: str
-    ) -> dict:
+    async def _poll_until_done(self, client: httpx.AsyncClient, prompt_id: str) -> dict:
         elapsed = 0.0
         while elapsed < _POLL_TIMEOUT:
             resp = await client.get(f"/history/{prompt_id}")
@@ -89,8 +93,12 @@ class ComfyUIClient:
                 entry = history[prompt_id]
                 status = entry.get("status", {})
                 outputs = entry.get("outputs", {})
-                if status.get("completed") or (outputs and status.get("status_str") == "success"):
-                    logger.info("ComfyUI prompt completed", extra={"prompt_id": prompt_id})
+                if status.get("completed") or (
+                    outputs and status.get("status_str") == "success"
+                ):
+                    logger.info(
+                        "ComfyUI prompt completed", extra={"prompt_id": prompt_id}
+                    )
                     return outputs
                 status_msg = status.get("status_str", "")
                 if "error" in status_msg.lower():
@@ -99,7 +107,9 @@ class ComfyUIClient:
             await asyncio.sleep(_POLL_INTERVAL)
             elapsed += _POLL_INTERVAL
 
-        raise TimeoutError(f"ComfyUI prompt {prompt_id} timed out after {_POLL_TIMEOUT}s")
+        raise TimeoutError(
+            f"ComfyUI prompt {prompt_id} timed out after {_POLL_TIMEOUT}s"
+        )
 
     async def _download_output(
         self, client: httpx.AsyncClient, outputs: dict, output_type: str = "image"

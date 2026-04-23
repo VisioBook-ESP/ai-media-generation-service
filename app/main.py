@@ -23,7 +23,11 @@ def _build_storage(settings: Settings):
     if settings.ENV == "development":
         logger.info("Using local filesystem storage (dev mode)")
         return LocalStorageClient()
-    logger.info("Using S3 storage: %s/%s", settings.S3_ENDPOINT_URL, settings.MINIO_BUCKET_RESULTS)
+    logger.info(
+        "Using S3 storage: %s/%s",
+        settings.S3_ENDPOINT_URL,
+        settings.MINIO_BUCKET_RESULTS,
+    )
     return S3StorageClient(
         endpoint_url=settings.S3_ENDPOINT_URL,
         bucket=settings.MINIO_BUCKET_RESULTS,

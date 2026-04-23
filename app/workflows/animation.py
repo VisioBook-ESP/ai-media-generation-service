@@ -1,6 +1,15 @@
 from app.workflows.common import deterministic_seed, load_template, random_seed
 
-_REQUIRED_NODES = {"75", "269", "267:237", "267:216", "267:266", "267:247", "267:225", "267:260"}
+_REQUIRED_NODES = {
+    "75",
+    "269",
+    "267:237",
+    "267:216",
+    "267:266",
+    "267:247",
+    "267:225",
+    "267:260",
+}
 
 _ANIMATION_FPS = 25
 _DEFAULT_DURATION_SEC = 4.0
@@ -49,7 +58,7 @@ def build(
 
     # Seeds
     seed = deterministic_seed(scene_id, "animation") if scene_id else random_seed()
-    workflow["267:237"]["inputs"]["noise_seed"] = seed       # low-res pass
-    workflow["267:216"]["inputs"]["noise_seed"] = seed + 1   # high-res pass
+    workflow["267:237"]["inputs"]["noise_seed"] = seed  # low-res pass
+    workflow["267:216"]["inputs"]["noise_seed"] = seed + 1  # high-res pass
 
     return workflow, [{"name": "scene.png", "image": None}]

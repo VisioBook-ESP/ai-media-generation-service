@@ -1,0 +1,23 @@
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ENV: development
+      PORT: "8087"
+      LOG_LEVEL: info
+      NATS_URL: nats://nats:4222
+      NATS_STREAM: visiobook
+      COMFYUI_URL: http://comfyui-not-available:8188
+    depends_on:
+      - nats
+    ports:
+      - "8087:8087"

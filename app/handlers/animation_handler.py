@@ -20,12 +20,15 @@ class AnimationHandler:
         execution_id = data.get("executionId")
         scenes = data.get("scenes", [])
 
-        await self._publisher.publish("visiobook.ai.progress", {
-            "executionId": execution_id,
-            "step": "animation_generation",
-            "progress": 25,
-            "message": f"Starting animation: {len(scenes)} scene(s)",
-        })
+        await self._publisher.publish(
+            "visiobook.ai.progress",
+            {
+                "executionId": execution_id,
+                "step": "animation_generation",
+                "progress": 25,
+                "message": f"Starting animation: {len(scenes)} scene(s)",
+            },
+        )
 
         for scene_data in scenes:
             scene_id = scene_data["sceneId"]
@@ -54,26 +57,35 @@ class AnimationHandler:
                 upload_url = await self._storage.get_upload_url(path, "image/webp")
                 await self._storage.upload_file(upload_url, video_bytes, "image/webp")
 
-                await self._publisher.publish("visiobook.ai.media.animation.completed", {
-                    "executionId": execution_id,
-                    "sceneId": scene_id,
-                    "mediaUrl": path,
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.animation.completed",
+                    {
+                        "executionId": execution_id,
+                        "sceneId": scene_id,
+                        "mediaUrl": path,
+                    },
+                )
                 logger.info("Scene animation completed", extra={"scene_id": scene_id})
             except Exception as exc:
                 logger.exception("Scene animation failed", extra={"scene_id": scene_id})
-                await self._publisher.publish("visiobook.ai.media.failed", {
-                    "executionId": execution_id,
-                    "sceneId": scene_id,
-                    "error": str(exc),
-                })
+                await self._publisher.publish(
+                    "visiobook.ai.media.failed",
+                    {
+                        "executionId": execution_id,
+                        "sceneId": scene_id,
+                        "error": str(exc),
+                    },
+                )
 
-        await self._publisher.publish("visiobook.ai.progress", {
-            "executionId": execution_id,
-            "step": "animation_generation",
-            "progress": 40,
-            "message": f"All animations done: {len(scenes)} scene(s)",
-        })
+        await self._publisher.publish(
+            "visiobook.ai.progress",
+            {
+                "executionId": execution_id,
+                "step": "animation_generation",
+                "progress": 40,
+                "message": f"All animations done: {len(scenes)} scene(s)",
+            },
+        )
 
     async def _load_image_b64(self, storage_path: str) -> str:
         data = await self._storage.read_file(storage_path)

@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 class S3StorageClient:
     """S3-compatible storage client (works with MinIO and AWS S3)."""
 
-    def __init__(self, endpoint_url: str, bucket: str, access_key: str, secret_key: str):
+    def __init__(
+        self, endpoint_url: str, bucket: str, access_key: str, secret_key: str
+    ):
         self._bucket = bucket
         self._s3 = boto3.client(
             "s3",
@@ -31,7 +33,9 @@ class S3StorageClient:
     async def get_upload_url(self, path: str, content_type: str) -> str:
         return path
 
-    async def upload_file(self, upload_url: str, data: bytes, content_type: str) -> None:
+    async def upload_file(
+        self, upload_url: str, data: bytes, content_type: str
+    ) -> None:
         self._s3.upload_fileobj(
             BytesIO(data),
             self._bucket,
