@@ -2,11 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     PORT: int = 8087
     ENV: str = "development"
-    LOG_LEVEL: str = "info"
 
     # NATS JetStream
     NATS_URL: str = "nats://nats:4222"
@@ -27,6 +26,3 @@ class Settings(BaseSettings):
     def S3_ENDPOINT_URL(self) -> str:
         scheme = "https" if self.MINIO_USE_SSL.lower() == "true" else "http"
         return f"{scheme}://{self.MINIO_ENDPOINT}:{self.MINIO_PORT}"
-
-    # HuggingFace (utilisé par setup_models.sh, pas par le service)
-    HF_TOKEN: str = ""
