@@ -31,14 +31,14 @@ Le service ecoute un unique sujet NATS (`visiobook.media.generate`) et execute u
 | Image generation | FLUX.1-dev (ModelSamplingFlux + SamplerCustomAdvanced) |
 | Style consistency | FLUX Redux (StyleModelApply) |
 | Animation | LTX-Video 2.3 22B fp8 (two-pass + Gemma 3 12B) |
-| Storage | S3 / MinIO |
+| Storage | S3 / MinIO (prod) ou filesystem local (dev) |
 | Infrastructure | Docker + RunPod / Kubernetes |
 
 ## Prerequis
 
 - Python 3.12+
 - NATS Server avec JetStream active
-- ComfyUI latest avec le custom node : `ComfyUI-LTXVideo`
+- ComfyUI latest avec le custom node `ComfyUI-LTXVideo`
 - S3 / MinIO pour le stockage (production) ou stockage local (dev)
 - GPU 24GB+ VRAM (RTX 4090, A100, L40S, ...)
 
@@ -48,8 +48,12 @@ Le service ecoute un unique sujet NATS (`visiobook.media.generate`) et execute u
 git clone <repo-url>
 cd ai-media-generation-service
 
-# Installer les dependances
-uv sync  # ou pip install -r requirements.txt
+# Dependances (prod)
+pip install -r requirements.txt
+# ou : uv pip install -r requirements.txt
+
+# Dependances dev (tests, lint, format)
+pip install -r requirements-dev.txt
 
 # Configurer l'environnement
 cp .env.example .env
@@ -58,19 +62,23 @@ cp .env.example .env
 
 ## Configuration
 
+Les variables sont lues depuis l'environnement ou un fichier `.env`. Les champs inconnus sont ignores (`extra="ignore"`).
+
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `8087` | Port du service |
-| `ENV` | `development` | `development` (stockage local) ou `production` (S3) |
+| `ENV` | `development` | `development` (stockage local) ou `production` (S3/MinIO) |
 | `NATS_URL` | `nats://nats:4222` | URL du serveur NATS |
 | `NATS_STREAM` | `visiobook` | Nom du stream JetStream |
 | `COMFYUI_URL` | `http://localhost:8188` | URL de l'instance ComfyUI |
-| `S3_ENDPOINT_URL` | `http://minio:9000` | Endpoint S3/MinIO |
-| `S3_BUCKET` | `visiobook` | Nom du bucket |
-| `S3_ACCESS_KEY` | `minioadmin` | Access key S3 |
-| `S3_SECRET_KEY` | `minioadmin` | Secret key S3 |
-| `S3_REGION` | `us-east-1` | Region S3 |
-| `HF_TOKEN` | _(vide)_ | Token HuggingFace (utilise par `setup_models.sh`) |
+| `MINIO_ENDPOINT` | `localhost` | Hostname du serveur S3/MinIO |
+| `MINIO_PORT` | `9000` | Port du serveur S3/MinIO |
+| `MINIO_USE_SSL` | `false` | `true` pour HTTPS |
+| `MINIO_ACCESS_KEY` | `minioadmin` | Access key |
+| `MINIO_SECRET_KEY` | `minioadmin` | Secret key |
+| `MINIO_BUCKET_RESULTS` | `analysis-results` | Nom du bucket |
+
+L'URL S3 complete est construite automatiquement via la propriete `S3_ENDPOINT_URL` (`{scheme}://{MINIO_ENDPOINT}:{MINIO_PORT}`).
 
 ## Lancement
 
@@ -85,9 +93,10 @@ La dev UI est accessible sur `http://localhost:8087/dev/` — elle permet d'envo
 
 ### Production (Kubernetes)
 
-Le service se deploie dans le meme cluster que MinIO. L'endpoint S3 est alors :
+En cluster, pointer `MINIO_ENDPOINT` vers le service MinIO :
 ```
-S3_ENDPOINT_URL=http://minio-analysis.visiobook-namespace.svc.cluster.local:9000
+MINIO_ENDPOINT=minio-analysis.visiobook-namespace.svc.cluster.local
+MINIO_PORT=9000
 ```
 
 ```bash
@@ -137,6 +146,8 @@ Publier sur le sujet NATS `visiobook.media.generate` :
   "correlationId": "uuid"
 }
 ```
+
+En dev, tu peux aussi POSTer ce payload sur `http://localhost:8087/dev/generate` — le service republie sur NATS pour toi.
 
 ### Champs cles
 
@@ -224,7 +235,7 @@ visiobook.ai.media.animation.completed
 {
   "executionId": "uuid",
   "sceneOrder": 0,
-  "mediaUrl": "userId/projectId/animated_scenes/scene_0/animation.webp"
+  "mediaUrl": "userId/projectId/animated_scenes/scene_0/animation.mp4"
 }
 ```
 
@@ -253,7 +264,7 @@ visiobook.ai.media.failed | visiobook.ai.reference.failed
 }
 ```
 
-## Structure de stockage S3
+## Structure de stockage
 
 ```
 {userId}/
@@ -269,7 +280,7 @@ visiobook.ai.media.failed | visiobook.ai.reference.failed
         image.png
     animated_scenes/
       scene_{order}/
-        animation.webp
+        animation.mp4
 ```
 
 ## Health check
@@ -281,10 +292,39 @@ GET /health
 ```json
 {
   "status": "ok",
-  "service": "ok",
-  "nats": "connected",
-  "comfyui": "ok"
+  "checks": {
+    "service": "ok",
+    "nats": "ok",
+    "comfyui": "ok"
+  }
 }
+```
+
+Le statut global est `ok` uniquement si tous les checks sont `ok`, sinon `degraded`. Valeurs possibles :
+- `nats` : `ok` | `disconnected` | `error`
+- `comfyui` : `ok` | `unavailable` (HTTP != 200) | `unreachable` (erreur reseau) | `not_configured`
+
+## Tests
+
+```bash
+# Lancer la suite complete
+pytest
+
+# Avec coverage
+pytest --cov=app --cov-report=term-missing
+
+# Rapport HTML navigable
+pytest --cov=app --cov-report=html
+# puis ouvrir htmlcov/index.html
+```
+
+La suite contient ~150 tests unitaires avec fakes in-memory (aucun appel reseau). Coverage ~92%.
+
+## Qualite du code
+
+```bash
+black app/ tests/     # format
+ruff check app/ tests/  # lint
 ```
 
 ## Setup GPU (RunPod)
@@ -339,37 +379,43 @@ Les modeles sont lus depuis le volume via `extra_model_paths.yaml`.
 ```
 app/
   api/
-    health.py            # Health check endpoint
-    dev.py               # Dev UI + NATS event viewer
+    health.py              # GET /health
+    dev.py                 # Dev UI + POST /dev/generate + GET /dev/events
   clients/
-    comfyui.py           # Client HTTP ComfyUI (avec retry)
-    s3_storage.py        # Client S3/MinIO
-    local_storage.py     # Stockage local (dev)
+    comfyui.py             # Client HTTP ComfyUI (retry + polling)
+    s3_storage.py          # Client S3/MinIO (boto3)
+    local_storage.py       # Stockage local (dev, filesystem)
   handlers/
-    pipeline_handler.py  # Orchestrateur principal du pipeline
-    reference_handler.py # Handler references standalone
+    pipeline_handler.py    # Orchestrateur principal (monte dans main.py)
+    reference_handler.py   # Handler isole references (non cable)
+    scene_handler.py       # Handler isole scenes (non cable)
+    animation_handler.py   # Handler isole animations (non cable)
   nats/
-    consumer.py          # Consumer JetStream
-    publisher.py         # Publisher JetStream
+    consumer.py            # Consumer JetStream (visiobook.media.generate)
+    publisher.py           # Publisher JetStream
   workflows/
-    animation.py         # Builder workflow LTX-Video 2.3
-    flux_portrait.py     # Builder workflow portrait
-    flux_location.py     # Builder workflow lieu
-    scene.py             # Builder workflow scene (4 variantes Redux)
-    common.py            # Utilitaires (templates, seeds)
-  config.py              # Configuration (pydantic-settings)
-  main.py                # Point d'entree FastAPI
-  storage_paths.py       # Construction des chemins S3
-workflow_templates/      # Fichiers JSON ComfyUI (API format)
-  flux_scene.json        # Scene text-only
-  flux_scene_redux.json  # Scene single Redux (character ou location)
-  flux_scene_dual_redux.json  # Scene dual Redux (character + location)
-  flux_portrait.json     # Portrait personnage
-  flux_location.json     # Reference lieu
-  ltxv_23_i2v.json       # Animation LTX-Video 2.3 (two-pass)
+    animation.py           # Builder workflow LTX-Video 2.3
+    flux_portrait.py       # Builder workflow portrait
+    flux_location.py       # Builder workflow lieu
+    scene.py               # Builder workflow scene (4 variantes Redux)
+    common.py              # Utilitaires (templates, seeds)
+  config.py                # Configuration (pydantic-settings)
+  main.py                  # Point d'entree FastAPI + lifespan
+  storage_paths.py         # Construction des chemins de stockage
+workflow_templates/        # Fichiers JSON ComfyUI (API format)
+  flux_scene.json
+  flux_scene_redux.json
+  flux_scene_dual_redux.json
+  flux_portrait.json
+  flux_location.json
+  ltxv_23_i2v.json
 scripts/
-  dev.sh                 # Lancement dev (NATS + hot-reload)
-  start.sh               # Lancement production
-  setup_models.sh        # Telechargement modeles sur RunPod volume
-  build_docker.sh        # Build image Docker ComfyUI
+  dev.sh                   # Lancement dev (NATS + hot-reload)
+  start.sh                 # Lancement production
+  test_prod.sh             # Smoke test de l'image prod
+  setup_models.sh          # Telechargement modeles sur RunPod volume
+  build_docker.sh          # Build image Docker ComfyUI
+tests/                     # Suite pytest (~150 tests, coverage ~92%)
 ```
+
+> Note : `reference_handler`, `scene_handler` et `animation_handler` sont des handlers par-phase testes isolement mais non cables dans `main.py`. Seul `pipeline_handler` est utilise en production. Ils servent de base pour une migration future vers un modele evenementiel decoupe.
