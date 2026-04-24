@@ -191,7 +191,7 @@ jobs:
           POD_ID="${{ steps.pod.outputs.pod_id }}"
           COMFYUI_URL="https://${POD_ID}-8188.proxy.runpod.net"
 
-          kubectl apply -f - <<EOF
+          kubectl apply --validate=false -f - <<EOF
           apiVersion: v1
           kind: ConfigMap
           metadata:
